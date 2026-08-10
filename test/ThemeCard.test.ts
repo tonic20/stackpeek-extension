@@ -1,0 +1,83 @@
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/svelte";
+import ThemeCard from "../entrypoints/sidepanel/components/ThemeCard.svelte";
+
+describe("ThemeCard", () => {
+  it("renders a catalog theme with its price and origin chip", () => {
+    const { container } = render(ThemeCard, { theme: { name: "Dawn", origin: "catalog", price: "Free" } });
+
+    expect(screen.getByText("Dawn")).toBeTruthy();
+    expect(screen.getByText("Free")).toBeTruthy();
+    expect(screen.getByText("catalog")).toBeTruthy();
+    // A catalog theme is the design's one accent-carrying element: the plain
+    // and dashed variants are the deliberate non-answers, and neither applies.
+    const card = container.querySelector(".sp-theme")!;
+    expect(card.classList.contains("sp-theme--plain")).toBe(false);
+    expect(card.classList.contains("sp-theme--dashed")).toBe(false);
+  });
+
+  it("links a catalog theme's name to its listing", () => {
+    render(ThemeCard, {
+      theme: { name: "Dawn", origin: "catalog", theme_url: "https://themes.shopify.com/themes/dawn" },
+    });
+
+    const link = screen.getByRole("link", { name: "Dawn" });
+    expect(link.getAttribute("href")).toBe("https://themes.shopify.com/themes/dawn");
+    expect(link.classList.contains("sp-theme__name")).toBe(true);
+  });
+
+  // An uncatalogued theme has no listing. It must render as text rather than as
+  // a dead link -- this is the whole reason theme_url is optional.
+  it("renders a catalog theme's name as text when it has no listing", () => {
+    render(ThemeCard, { theme: { name: "Dawn", origin: "catalog" } });
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByText("Dawn").classList.contains("sp-theme__name")).toBe(true);
+  });
+
+  it("renders a forked theme with its schema version and a customized marker", () => {
+    render(ThemeCard, { theme: { name: "Dawn", origin: "forked", version: "15.1.0", price: "Free" } });
+
+    expect(screen.getByText("Dawn")).toBeTruthy();
+    expect(screen.getByText("15.1.0").classList.contains("sp-theme__version")).toBe(true);
+    expect(screen.getByText("customized").classList.contains("sp-theme__mod")).toBe(true);
+  });
+
+  it("keeps a custom theme's own name and gives it the plain variant", () => {
+    const { container } = render(ThemeCard, { theme: { name: "Handover theme", origin: "custom" } });
+
+    expect(screen.getByText("Handover theme")).toBeTruthy();
+    expect(screen.getByText("custom")).toBeTruthy();
+    expect(container.querySelector(".sp-theme--plain")).toBeTruthy();
+    // No version is claimed for a theme we could not identify.
+    expect(container.querySelector(".sp-theme__version")).toBeNull();
+    expect(screen.queryByText("customized")).toBeNull();
+  });
+
+  it("names an unnamed custom theme rather than rendering an empty heading", () => {
+    render(ThemeCard, { theme: { origin: "custom" } });
+
+    expect(screen.getByText("Custom theme")).toBeTruthy();
+  });
+
+  it("renders a headless storefront with the dashed variant", () => {
+    const { container } = render(ThemeCard, { theme: { origin: "headless" } });
+
+    expect(screen.getByText("Headless storefront")).toBeTruthy();
+    expect(screen.getByText(/decoupled from Shopify's theme layer/)).toBeTruthy();
+    expect(container.querySelector(".sp-theme--dashed")).toBeTruthy();
+  });
+
+  it("never links a custom or headless theme, even if a url leaks in", () => {
+    render(ThemeCard, { theme: { name: "Handover theme", origin: "custom", theme_url: "https://example.test/x" } });
+
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("renders nothing without a theme", () => {
+    const { container } = render(ThemeCard, { theme: undefined });
+
+    expect(container.querySelector(".sp-theme")).toBeNull();
+    expect(container.querySelector(".sp-sec")).toBeNull();
+  });
+});

@@ -1,0 +1,119 @@
+<script lang="ts">
+  import type { CatalogueDigest, ExportState } from "../../../lib/catalogue_types";
+  import Section from "./Section.svelte";
+
+  let {
+    digest,
+    state = "idle",
+    progress = null,
+    filename = null,
+    onexport,
+  }: {
+    // null means the catalogue is still being read. Distinct from an
+    // unavailable digest, which is a settled answer.
+    digest: CatalogueDigest | null;
+    state?: ExportState;
+    progress?: { done: number; total: number } | null;
+    filename?: string | null;
+    onexport: () => void;
+  } = $props();
+
+  const n = (value: number) => value.toLocaleString("en-US");
+
+  // The feed carries no currency, so an unknown one renders bare numbers rather
+  // than a guessed symbol (design D8).
+  function money(value: number, currency: string | null): string {
+    if (!currency) return value.toFixed(2);
+    try {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+    } catch {
+      return value.toFixed(2);
+    }
+  }
+
+  const priceRange = $derived(
+    !digest || digest.priceMin === null || digest.priceMax === null
+      ? "—"
+      : `${money(digest.priceMin, digest.currency)} – ${money(digest.priceMax, digest.currency)}`,
+  );
+
+  function ago(iso: string | null): string {
+    if (!iso) return "—";
+    const days = Math.floor((Date.now() - Date.parse(iso)) / 86400_000);
+    if (!Number.isFinite(days)) return "—";
+    if (days <= 0) return "today";
+    return `${days}d ago`;
+  }
+
+  const READING = "Reading the catalogue…";
+
+  const meta = $derived(
+    state === "fetching" && progress ? `${n(progress.done)} / ${n(progress.total)}`
+    : state === "done" && filename ? filename
+    : state === "error" ? "Couldn't read the catalogue."
+    : digest ? `${n(digest.count)} products · Shopify import format`
+    : READING,
+  );
+
+  // The only indeterminate branch above. Every other state is a settled answer,
+  // and the export reports itself with a determinate bar, which is a better
+  // instrument than a spinner wherever the total is known.
+  //
+  // Derived FROM meta rather than by re-testing digest and state: the spinner
+  // and the words beside it must name the same moment, and two copies of that
+  // condition are two things to keep in step.
+  const reading = $derived(meta === READING);
+</script>
+
+<!-- Empty while loading rather than 0: a count of zero is a wrong answer, not a
+     pending one (design D12). -->
+<Section id="products" heading="Products" count={digest?.available ? n(digest.count) : ""}>
+  {#if digest && !digest.available}
+    <p class="sp-quiet">Catalogue not public on this store.</p>
+  {:else}
+    <div class="sp-facts">
+      <div class="sp-fact">
+        <span class="sp-fact__k">Price range</span>
+        <span class="sp-fact__v">{priceRange}</span>
+      </div>
+      <div class="sp-fact">
+        <span class="sp-fact__k">Variants</span>
+        <span class="sp-fact__v">{digest ? n(digest.variants) : "—"}</span>
+      </div>
+      <div class="sp-fact">
+        <span class="sp-fact__k">Newest</span>
+        <span class="sp-fact__v">{digest ? ago(digest.newest) : "—"}</span>
+      </div>
+    </div>
+
+    {#if state === "error"}
+      <button class="sp-btn sp-btn--quiet" type="button" onclick={onexport}>Retry</button>
+    {:else}
+      <!-- Its own variant, never the accent: the accent stays reserved for the
+           theme card (product-catalogue design D11). -->
+      <button
+        class="sp-btn sp-btn--export"
+        type="button"
+        disabled={!digest || state === "fetching"}
+        aria-busy={state === "fetching"}
+        onclick={onexport}
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.5 11.5 7M2.5 13h11"></path></svg>
+        Export catalogue CSV
+      </button>
+    {/if}
+
+    {#if state === "fetching" && progress}
+      <div class="sp-track">
+        <div class="sp-fill" style="width:{((progress.done / progress.total) * 100).toFixed(4)}%"></div>
+      </div>
+    {/if}
+
+    <!-- Same spinner as the header's "Scanning…", for the same reason: both are
+         waits with no known end. Reusing .sp-spinner also inherits its
+         reduced-motion rule, which a second spinner would have to repeat. -->
+    <p class="sp-foot-note" class:sp-foot-note--busy={reading} aria-live="polite">
+      {#if reading}<span class="sp-spinner" aria-hidden="true"></span>{/if}{meta}
+    </p>
+  {/if}
+</Section>

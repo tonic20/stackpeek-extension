@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Stackpeek</title>
+    <!--
+      Page-level shell only. panel.css is byte-locked to the design bundle and
+      scopes itself to .sp-panel, so it can carry neither of these: the UA's
+      default body margin (which leaves the panel in an 8px gutter against the
+      side panel's edge) nor the ancestor heights that .sp-panel's
+      `min-height: 100%` needs to resolve against -- without them the footer
+      floats under the content instead of sitting at the bottom.
+    -->
+    <style>
+      html, body, #app { height: 100%; }
+      body { margin: 0; }
+      /* Until .sp-panel exists in the DOM nothing paints a background and the
+         UA canvas is white, so a dark panel flashed white on every open --
+         before this feature and independently of it. panel.css cannot carry
+         this: it is byte-locked and scopes itself to .sp-panel. */
+      html { background: var(--sp-bg); }
+    </style>
+    <!--
+      Classic, not a module, and deliberately not deferred: it has to run before
+      the body is parsed so the panel never paints in the scheme the user turned
+      off. See public/theme-boot.js for why it cannot be inline.
+    -->
+    <script src="/theme-boot.js"></script>
+  </head>
+  <body><div id="app"></div><script type="module" src="./main.ts"></script></body>
+</html>

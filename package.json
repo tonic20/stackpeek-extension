@@ -1,0 +1,43 @@
+{
+  "name": "extension",
+  "version": "0.1.0",
+  "description": "Stackpeek Shopify theme & app detector extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "node scripts/assert-release-safe.mjs && wxt build",
+    "zip": "node scripts/assert-release-safe.mjs && wxt zip",
+    "build:release": "WXT_API_BASE=https://api.stackpeek.app wxt build",
+    "zip:release": "WXT_API_BASE=https://api.stackpeek.app wxt zip",
+    "compile": "svelte-check",
+    "postinstall": "wxt prepare",
+    "test": "vitest run",
+    "capture:catalogue": "vite build --ssr scripts/capture_catalogue.ts --outDir scripts/.build --emptyOutDir && node scripts/.build/capture_catalogue.js",
+    "shots": "NODE_OPTIONS=--max-http-header-size=131072 vite --config shots/vite.harness.config.ts"
+  },
+  "_overrides_note": "web-ext is wxt 0.21's optional peer for launching a dev browser (npm run dev / dev:firefox). It pins adm-zip and shell-quote to ranges that exclude the patched releases, so npm audit fix is a no-op and these overrides force the fixed versions instead. Neither is bundled into the extension -- they run only in the local dev launcher. Extension CI gates on an unscoped `npm audit`, so these are load-bearing: removing one turns CI red rather than merely raising the noise. Drop each once web-ext ships a bump that covers it, which `npm audit` passing without it will confirm.",
+  "overrides": {
+    "adm-zip": "^0.6.0",
+    "shell-quote": "^1.10.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/svelte": "^5.4.2",
+    "@types/chrome": "^0.2.2",
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^22.20.1",
+    "@wxt-dev/module-svelte": "^2.0.0",
+    "audit-ci": "7.1.0",
+    "jsdom": "^30.0.1",
+    "svelte": "^5.56.8",
+    "svelte-check": "^4.7.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.4.3",
+    "vitest": "^4.1.10",
+    "web-ext": "^10.5.0",
+    "wxt": "^0.21.3"
+  }
+}

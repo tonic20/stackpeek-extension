@@ -1,0 +1,100 @@
+name: CI
+
+# This file is inert in the stackpeek monorepo: GitHub runs only workflows at a
+# repository's root, and there this sits at extension/.github/workflows/. It
+# comes alive in github.com/tonic20/stackpeek-extension, the published mirror of
+# this directory, where extension/ IS the root.
+#
+# It mirrors .github/workflows/extension-ci.yml in the monorepo, minus the
+# `working-directory: extension` default and the extension/ cache prefix, both
+# of which name a directory that does not exist in the mirror. Keep the two in
+# step: a check that runs in only one of them is a check that will be found
+# broken by whichever repository is not being watched.
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # `postinstall` runs `wxt prepare`, which generates the .wxt/ types the
+      # entrypoints rely on — so this has to happen before test or compile.
+      - name: Install dependencies
+        run: npm ci
+
+      # Unscoped on purpose. This was `--omit=dev` while the ~14 advisories
+      # under wxt -> web-ext-run made a full audit permanently red; wxt 0.21
+      # dropped that tree, so the whole graph is clean and the gate covers dev
+      # dependencies too. That is the point: the extension declares no runtime
+      # dependencies, so `--omit=dev` audited almost nothing, while the build
+      # chain that produces the shipped bundle is all devDependencies. A
+      # compromised vite or svelte reaches users even though it is never
+      # itself bundled.
+      #
+      # Two consequences worth knowing before touching this:
+      #   - The `overrides` in package.json are now load-bearing. They pin
+      #     web-ext's adm-zip and shell-quote to patched releases; dropping
+      #     them turns this step red rather than merely raising the noise.
+      #   - The audit queries the advisory database live, so this can go red
+      #     on a commit that changed nothing. That is a real advisory needing a
+      #     bump or an override -- not a flake to retry. If the tail of
+      #     low-severity dev noise ever outweighs the signal, prefer raising the
+      #     threshold over going back to `--omit=dev`: it keeps the build chain
+      #     in scope instead of dropping it.
+      #
+      # This runs audit-ci rather than `npm audit` for one reason: npm audit has
+      # no way to accept a specific advisory, so a single unfixable transitive
+      # vuln forces the whole gate down to `--audit-level=critical`. audit-ci
+      # fails on every high the way `npm audit` did, minus the IDs listed below,
+      # and prints the allowlisted ones on every run so they stay visible. It is
+      # a pinned devDependency, so `npx` resolves it locally -- no fetch at CI
+      # time. Verify a change here still bites by dropping one ID: exit 1.
+      #
+      # Allowlisted (both image-size, reached only via web-ext -> addons-linter):
+      #   GHSA-w3rx-r6r6-pgpr  ICNS parser infinite loop (DoS)
+      #   GHSA-5p2g-fcmc-qvqq  JXL/HEIF parser infinite loops (DoS)
+      # No patched image-size exists -- 2.0.2 is both the newest release and
+      # within the vulnerable range, and addons-linter@10.10.0 still pins it, so
+      # there is no version to bump or override to. npm's only offer is a
+      # breaking downgrade to web-ext@5.5.0, which would take wxt back to 0.20.
+      # Reachability here is nil: addons-linter parses our own icons at build
+      # time, so no attacker-controlled image ever meets the parser. Drop both
+      # IDs when image-size ships a fix; the step fails again if they linger.
+      - name: Scan for known security vulnerabilities
+        run: npx audit-ci --high --allowlist GHSA-w3rx-r6r6-pgpr GHSA-5p2g-fcmc-qvqq
+
+      - name: Typecheck Svelte and TypeScript
+        run: npm run compile
+
+      # Two describes skip here and only here: the design-bundle comparison and
+      # the best-sellers replay both read paths that exist in the monorepo and
+      # not in this repository. Everything else runs.
+      - name: Run tests
+        run: npm test
+
+      # Not redundant with the two steps above: a bad dependency resolution can
+      # break the production bundle while vitest and svelte-check both stay
+      # green, which is exactly how the esbuild 0.28 incompatibility surfaced.
+      # WXT_ALLOW_LOCALHOST=1 opts out of scripts/assert-release-safe.mjs,
+      # which `npm run build` runs as a preflight and which otherwise fails
+      # any production build missing a real WXT_API_BASE. That preflight
+      # exists to stop a Chrome Web Store upload from silently pointing at
+      # localhost; this step is a compile check whose artifact is discarded,
+      # not uploaded anywhere, so the flag is safe here and marks that
+      # distinction explicitly rather than weakening the preflight itself.
+      - name: Build the extension
+        run: WXT_ALLOW_LOCALHOST=1 npm run build
