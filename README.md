@@ -7,6 +7,9 @@ A Chrome MV3 side-panel extension that detects what a Shopify store is built
 with — its theme, its apps, and its tracking pixels — on the currently active
 tab.
 
+**[stackpeek.app](https://stackpeek.app)** — what it detects, the permissions
+it asks for, and how to install it.
+
 ## Why this is public
 
 Stackpeek asks you to install something that reads the page you are looking at.
@@ -75,6 +78,10 @@ rather than a merge button. Two test blocks — the design-bundle comparison in
 `test/shots_best_sellers_fixture.test.ts` — skip here by design: they read
 fixtures that live in the monorepo. Everything else runs, and CI above is the
 proof.
+
+The product itself lives at [stackpeek.app](https://stackpeek.app), and the
+privacy policy the claims above are written against is at
+[stackpeek.app/privacy](https://stackpeek.app/privacy).
 
 ## Requirements
 
