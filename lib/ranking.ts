@@ -18,6 +18,20 @@ export function rankCatalogue(
 ): CatalogueEntry[] {
   if (!pages || !digest.available) return [];
 
+  // A capped digest's index holds only the first 10,000 products of a larger
+  // catalogue, while the best-selling order below covers ALL of them. Joining
+  // the two is not a partial ranking, it is a wrong one: every ranked handle
+  // beyond the cap is silently dropped by the filter, and .slice then renumbers
+  // the survivors 1..N -- so the store's 25th best seller is printed as "#1"
+  // with #1-#24 nowhere on screen. Measured on kith.com: 289 of 370 ranked
+  // handles dropped; on yosekastationery.com, 13 of 20. A rank is a claim about
+  // position, and there is no honest one to make from a prefix.
+  //
+  // Refusing costs nothing the panel wants: an empty result is what sends it to
+  // Shopify's own BEST_SELLING sort, which is authoritative and untouched by
+  // any read cap.
+  if (digest.capped) return [];
+
   // Empty whenever the two sorts agreed, which means the store ignored sort_by
   // and there is no ranking to show (design D3).
   const handles = rankedHandles(pages.bestSelling, pages.alphabetical);

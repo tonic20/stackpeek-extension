@@ -32,6 +32,10 @@ export interface CatalogueProduct {
   options?: { name?: string }[];
   variants?: CatalogueVariant[];
   images?: CatalogueImage[];
+  // Only the Storefront API carries these; /products.json does not, so they stay
+  // undefined on that path and csv.ts writes blanks exactly as it always has.
+  seo_title?: string | null;
+  seo_description?: string | null;
 }
 
 // One entry per product: enough to render a rank row, and nothing else.
@@ -54,13 +58,34 @@ export interface CatalogueEntry {
 // panel costs ~87 KB on a large store and buys a single tested implementation.
 export interface CatalogueDigest {
   available: boolean;      // false when the feed is 404, blocked or absent
-  count: number;
-  variants: number;
+  // Why `available` is false. "not_public" means the store answered and has no
+  // public feed; "unreadable" means we never got an answer -- a throw, an
+  // injection refusal, a dropped tab. The panel must not report the second as
+  // the first: that states a fact about the merchant's store on no evidence.
+  // null when available is true.
+  reason: "not_public" | "unreadable" | null;
+  // null where the size could not be read even though the catalogue could -- the
+  // Storefront path takes its count from /sitemap.xml, and a 403 there costs the
+  // count, not the section. Rendering 0 would state a fact about the merchant's
+  // store on no evidence, the same error as reporting a failed read as "not
+  // public". ProductSummary shows no count at all for null, exactly as it shows
+  // an em dash for a null `variants`.
+  count: number | null;
+  // null where the source cannot answer cheaply -- the Storefront API exposes no
+  // variant total, and rendering 0 would be a false statement about the store
+  // rather than a missing one. ProductSummary shows an em dash for null.
+  variants: number | null;
   priceMin: number | null;
   priceMax: number | null;
   newest: string | null;   // ISO date of the most recent created_at
   currency: string | null; // from window.Shopify; null renders no symbol
   index: CatalogueEntry[];
+  // True when the export cannot reach the whole catalogue: on the
+  // /products.json path because the 40-page walk ran out of pages rather than
+  // products, so `count` is a floor; on the Storefront path because the sitemap
+  // count is above the same 40 x 250 ceiling. Never true when `count` is null --
+  // a ceiling cannot be exceeded by a size that was never read.
+  capped?: boolean;
 }
 
 // The two collection-page bodies, fetched in the page and ranked in the panel.

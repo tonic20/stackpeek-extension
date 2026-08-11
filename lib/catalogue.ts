@@ -32,23 +32,27 @@ export async function collectCatalogueDigest(bestSellerLimit: number): Promise<C
   // now pins this for every injected function.
   const PAGE_SIZE = 250;
 
-  const empty: CatalogueDigest = {
-    available: false, count: 0, variants: 0, priceMin: null, priceMax: null,
+  const unusable = (reason: "not_public" | "unreadable"): CatalogueDigest => ({
+    available: false, reason, count: 0, variants: 0, priceMin: null, priceMax: null,
     newest: null, currency: null, index: [],
-  };
+  });
 
   const products: CatalogueProduct[] = [];
+  let capped = false;
   for (let page = 1; page <= 40; page++) {
     let batch: CatalogueProduct[];
     try {
       const res = await fetch(`/products.json?limit=${PAGE_SIZE}&page=${page}`, { credentials: "omit" });
-      if (!res.ok) return page === 1 ? empty : finish();
+      // A response, even a refusal, is the store answering: there is no public feed.
+      if (!res.ok) return page === 1 ? unusable("not_public") : finish();
       batch = (await res.json()).products ?? [];
     } catch {
-      return page === 1 ? empty : finish();
+      // No response at all -- we cannot say anything about the store.
+      return page === 1 ? unusable("unreadable") : finish();
     }
     products.push(...batch);
     if (batch.length < PAGE_SIZE) break;
+    if (page === 40) capped = true;
   }
 
   return finish();
@@ -75,12 +79,13 @@ export async function collectCatalogueDigest(bestSellerLimit: number): Promise<C
     const currency = (window as any).Shopify?.currency?.active ?? null;
 
     return {
-      available: true, count: products.length, variants, priceMin, priceMax, newest, currency,
+      available: true, reason: null, count: products.length, variants, priceMin, priceMax, newest, currency,
       index: products.map((p) => ({
         handle: p.handle,
         title: p.title ?? p.handle,
         price: p.variants?.[0]?.price ?? null,
       })),
+      capped,
     };
   }
 }

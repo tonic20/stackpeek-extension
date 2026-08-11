@@ -3,12 +3,12 @@ import { render, screen, fireEvent } from "@testing-library/svelte";
 import ProductSummary from "../entrypoints/sidepanel/components/ProductSummary.svelte";
 
 const digest = (over: Record<string, unknown> = {}) => ({
-  available: true, count: 1240, variants: 4180, priceMin: 18, priceMax: 240,
+  available: true, reason: null, count: 1240, variants: 4180, priceMin: 18, priceMax: 240,
   newest: new Date(Date.now() - 2 * 86400_000).toISOString(), currency: "USD",
   index: [], ...over,
 });
 
-const base = { state: "idle" as const, progress: null, filename: null, onexport: () => {} };
+const base = { state: "idle" as const, progress: null, filename: null, onexport: () => {}, onretryread: () => {} };
 
 describe("ProductSummary", () => {
   it("heads the section with the product count", () => {
@@ -174,5 +174,76 @@ describe("ProductSummary", () => {
 
     expect(screen.getByText("Couldn't read the catalogue.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  // Guards against the export-error Retry and the unreadable-catalogue Retry
+  // ever getting wired to the same callback -- they must re-attempt different
+  // things (an export vs a read) even though they share a label and a class.
+  it("retries the export, not the read, when the export itself failed", () => {
+    const onexport = vi.fn();
+    const onretryread = vi.fn();
+    render(ProductSummary, { ...base, onexport, onretryread, digest: digest(), state: "error" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(onexport).toHaveBeenCalledOnce();
+    expect(onretryread).not.toHaveBeenCalled();
+  });
+
+  it("says the catalogue is not public only when the store said so", () => {
+    render(ProductSummary, { ...base, digest: digest({ available: false, reason: "not_public" }) });
+    expect(screen.getByText("Catalogue not public on this store.")).toBeTruthy();
+  });
+
+  // onexport is wrong here: runExport bails on `!digest?.available`, which is
+  // exactly true in this state, so wiring this button to it made Retry a
+  // silent no-op. It must call the read retry instead, and never the export.
+  it("says the read failed, and offers a retry, when it could not be read", () => {
+    const onexport = vi.fn();
+    const onretryread = vi.fn();
+    render(ProductSummary, { ...base, onexport, onretryread, digest: digest({ available: false, reason: "unreadable" }) });
+    expect(screen.getByText("Couldn't read the catalogue.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(onretryread).toHaveBeenCalledOnce();
+    expect(onexport).not.toHaveBeenCalled();
+  });
+
+  // A readable catalogue whose SIZE could not be read: the Storefront API
+  // answered, the sitemap did not. Four things have to hold at once -- no "0"
+  // in the count slot, no "0 products" in the meta line, no claim of a cap
+  // that was never measured, and an Export button that still works, because
+  // the catalogue is readable and only its size is unknown.
+  it("shows no count at all when the catalogue's size could not be read", () => {
+    const { container } = render(ProductSummary, { ...base, digest: digest({ count: null }) });
+
+    expect(container.querySelector(".sp-count")!.textContent).toBe("");
+    expect(screen.queryByText(/0 products/)).toBeNull();
+    expect(screen.queryByText(/products ·/)).toBeNull();
+    expect(screen.getByText("Shopify import format")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Export catalogue CSV" })).not.toBeDisabled();
+  });
+
+  // With no total there is no denominator, so the note counts what has been
+  // exported and the determinate track -- which is itself a claim about how
+  // much is left -- is omitted rather than drawn against an invented total.
+  it("reports a bare tally, and no track, when the export has no known total", () => {
+    const { container } = render(ProductSummary, {
+      ...base, digest: digest({ count: null }), state: "fetching", progress: { done: 500, total: null },
+    });
+
+    expect(screen.getByText("500 exported")).toBeTruthy();
+    expect(container.querySelector(".sp-track")).toBeNull();
+  });
+
+  it("states the export limit when the catalogue exceeds it", () => {
+    render(ProductSummary, { ...base, digest: digest({ count: 41762, capped: true }) });
+    expect(screen.getByText(/first 10,000/)).toBeTruthy();
+  });
+
+  it("says nothing about a limit that does not bite", () => {
+    render(ProductSummary, { ...base, digest: digest({ count: 240, capped: false }) });
+    expect(screen.queryByText(/first 10,000/)).toBeNull();
   });
 });

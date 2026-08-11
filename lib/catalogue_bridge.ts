@@ -5,9 +5,12 @@ import type { CatalogueDigest, CatalogueProduct, CollectionPages } from "./catal
 // list (design D13); more would be data we cannot show.
 export const BEST_SELLER_LIMIT = 25;
 
-const UNAVAILABLE: CatalogueDigest = {
-  available: false, count: 0, variants: 0, priceMin: null, priceMax: null,
-  newest: null, currency: null, index: [],
+// Every failure path here is a failure to READ, never evidence about the store:
+// no tab, a refused injection, a thrown executeScript. Reporting these as
+// "not public" would state a fact about the merchant on no evidence.
+const UNREADABLE: CatalogueDigest = {
+  available: false, reason: "unreadable", count: 0, variants: 0, priceMin: null,
+  priceMax: null, newest: null, currency: null, index: [],
 };
 
 async function activeTabId(): Promise<number | undefined> {
@@ -22,16 +25,16 @@ async function activeTabId(): Promise<number | undefined> {
 export async function fetchCatalogueDigest(): Promise<CatalogueDigest> {
   try {
     const tabId = await activeTabId();
-    if (tabId === undefined) return UNAVAILABLE;
+    if (tabId === undefined) return UNREADABLE;
     const [injection] = await globalThis.chrome.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
       func: collectCatalogueDigest,
       args: [BEST_SELLER_LIMIT],
     });
-    return (injection?.result as CatalogueDigest) ?? UNAVAILABLE;
+    return (injection?.result as CatalogueDigest) ?? UNREADABLE;
   } catch {
-    return UNAVAILABLE;
+    return UNREADABLE;
   }
 }
 

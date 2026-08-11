@@ -61,7 +61,7 @@ describe("shots harness", () => {
   // Frame 4 is the export frame; it needs a real digest to render one.
   it("passes an injected digest straight through", async () => {
     const injected = {
-      available: true, count: 412, variants: 1180,
+      available: true, reason: null, count: 412, variants: 1180,
       priceMin: 12, priceMax: 240, newest: "2026-07-30", currency: "USD", index: [],
     };
     const props = harnessProps({}, "https://demo.example/", injected);

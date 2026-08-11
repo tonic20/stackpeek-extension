@@ -8,6 +8,7 @@
   import { extensionVersion } from "../../lib/version";
   import type { PanelStatus, TerminalStatus } from "../../lib/panel_status";
   import { fetchCatalogueDigest, fetchCataloguePage, fetchCollectionPages, BEST_SELLER_LIMIT } from "../../lib/catalogue_bridge";
+  import { fetchStorefrontDigest, fetchStorefrontBestSellers, fetchStorefrontExport } from "../../lib/storefront_bridge";
   import type { CatalogueDigest, CatalogueEntry, CatalogueProduct, CollectionPages, ExportState } from "../../lib/catalogue_types";
   import { toCsv } from "../../lib/csv";
   import { downloadText, catalogueFilename } from "../../lib/download";
@@ -30,16 +31,22 @@
     delays,
     watch = watchActiveTab,
     catalogue = fetchCatalogueDigest,
+    storefrontCatalogue = fetchStorefrontDigest,
+    storefrontBestSellers = fetchStorefrontBestSellers,
     cataloguePage = fetchCataloguePage,
     collectionPages = fetchCollectionPages,
+    storefrontExport = fetchStorefrontExport,
   }: {
     runner?: () => Promise<{ signals: unknown; url: string | undefined }>;
     autostart?: boolean;
     delays?: number[];
     watch?: (onChange: () => void) => { stop: () => void };
     catalogue?: () => Promise<CatalogueDigest>;
+    storefrontCatalogue?: () => Promise<CatalogueDigest>;
+    storefrontBestSellers?: (limit: number) => Promise<CatalogueEntry[]>;
     cataloguePage?: (page: number) => Promise<CatalogueProduct[] | null>;
     collectionPages?: () => Promise<CollectionPages | null>;
+    storefrontExport?: (onProgress: (done: number) => void) => Promise<CatalogueProduct[] | null>;
   } = $props();
 
   let status: PanelStatus = $state("idle");
@@ -56,8 +63,16 @@
   // observable benefit (design D4).
   let digestDomain = "";
 
+  // Which source answered for the current store, so the export uses the same one.
+  // A digest from the Storefront API means /products.json is not readable here;
+  // exporting through it would fail every time.
+  let digestSource: "products_json" | "storefront" = "products_json";
+
   let exportState: ExportState = $state("idle");
-  let exportProgress: { done: number; total: number } | null = $state(null);
+  // total is null when the digest carries no count -- a readable catalogue whose
+  // size we could not read. ProductSummary renders that as a bare "exported"
+  // tally with no track, rather than against an invented denominator.
+  let exportProgress: { done: number; total: number | null } | null = $state(null);
   let exportFilename: string | null = $state(null);
 
   // Empty unless the ranking was proven. Absent, not empty, is what the section
@@ -122,21 +137,86 @@
     if (!host || host === digestDomain) return;
     digestDomain = host;
     digest = null;
+    digestSource = "products_json";
     bestSellers = [];
     exportState = "idle";
     exportProgress = null;
     exportFilename = null;
 
-    const result = await catalogue();
+    let result = await catalogue();
     // A store change mid-read makes this answer stale; the newer load owns the
     // slot and this one is dropped.
     if (digestDomain !== host) return;
+
+    // Only "not_public" is evidence: the store answered and has no feed. An
+    // unreadable result proves nothing about the store, so a second source
+    // would be guessing -- and would replace an honest message with a wrong one.
+    if (!result.available && result.reason === "not_public") {
+      const viaApi = await storefrontCatalogue();
+      if (digestDomain !== host) return;
+      if (viaApi.available) { result = viaApi; digestSource = "storefront"; }
+    } else if (result.available && result.capped) {
+      // The walk ran out of pages, not products, so `count` is a floor. The
+      // sitemap knows the real total; nothing else about the digest changes.
+      const exact = await storefrontCatalogue();
+      if (digestDomain !== host) return;
+      // A null count from that source is a sitemap we could not read, which
+      // improves on nothing: the floor we already have is better than an
+      // absence, so it stays.
+      if (exact.available && exact.count !== null && exact.count > (result.count ?? 0)) {
+        // Every figure the walk computed goes with the count it was computed
+        // from. `variants` was summed over the first 10,000 products only, so
+        // beside a 34,935-product total it is a floor wearing the clothes of a
+        // total -- the exact overclaim this branch exists to remove, moved one
+        // row down.
+        //
+        // The price range is the same fault, not a sampling quibble.
+        // /products.json is served in published_at DESCENDING order (measured
+        // on kith.com: 7,569 descending pairs, 0 ascending), so the products the
+        // walk never reached are systematically the OLDER ones -- exactly where
+        // clearance pricing lives. Both endpoints are therefore bounds in the
+        // wrong direction: the true minimum can only be lower and the true
+        // maximum only higher. A "Price range" row directly beneath "34,935
+        // products" reads as the range of those 34,935.
+        //
+        // `newest` survives, and is the only prefix-derived figure that does.
+        // It survives BECAUSE of that same descending order: the prefix is the
+        // newest-published 10,000, every unread product was published earlier
+        // than the prefix's oldest, and created_at <= published_at held for all
+        // 10,000 of kith's with no exceptions -- so the globally newest product
+        // is necessarily inside the prefix. A store whose feed is not
+        // published-descending would break that argument.
+        //
+        // Null is what the digest already means by "we did not read this", and
+        // ProductSummary renders it as an em dash.
+        result = { ...result, count: exact.count, variants: null, priceMin: null, priceMax: null, capped: true };
+      }
+    }
+
     digest = result;
 
     // Ranked after the digest, not with it: the ranking is optional and slower,
     // and the summary must never wait on it.
     const pages = await collectionPages();
-    if (digestDomain === host) bestSellers = rankCatalogue(pages, result, BEST_SELLER_LIMIT);
+    if (digestDomain !== host) return;
+    bestSellers = rankCatalogue(pages, result, BEST_SELLER_LIMIT);
+    // The collection-order inference needs collection pages, which a headless
+    // storefront does not serve. Shopify's own ranking is available there and is
+    // better evidence anyway.
+    if (bestSellers.length === 0) {
+      const ranked = await storefrontBestSellers(BEST_SELLER_LIMIT);
+      if (digestDomain === host) bestSellers = ranked;
+    }
+  }
+
+  // loadCatalogue memoizes on digestDomain to avoid refetching several
+  // megabytes on a same-store re-render (design D4) -- which is exactly what
+  // makes a retry a no-op if that memo is left standing: `host === digestDomain`
+  // would be true and loadCatalogue would return before doing anything. Clearing
+  // it here is the whole fix; the fetch/fallback/ranking logic stays in one place.
+  function retryCatalogueRead() {
+    digestDomain = "";
+    loadCatalogue(domain);
   }
 
   async function runExport() {
@@ -146,15 +226,27 @@
     // state otherwise carries the previous run's filename in memory, waiting
     // for something to render it.
     exportFilename = null;
+    // null when the catalogue's size was never read. Carried through rather
+    // than defaulted to 0 or to the running total: the progress note and the
+    // track both key on it, and either substitute would invent a denominator.
     exportProgress = { done: 0, total: digest.count };
 
     const products: CatalogueProduct[] = [];
-    for (let page = 1; page <= 40; page++) {
-      const batch = await cataloguePage(page);
-      if (batch === null) { exportState = "error"; exportProgress = null; return; }
-      products.push(...batch);
-      exportProgress = { done: products.length, total: Math.max(digest.count, products.length) };
-      if (batch.length < 250) break;
+    if (digestSource === "storefront") {
+      const all = await storefrontExport((done) => {
+        const known = digest?.count ?? null;
+        exportProgress = { done, total: known === null ? null : Math.max(known, done) };
+      });
+      if (all === null) { exportState = "error"; exportProgress = null; return; }
+      products.push(...all);
+    } else {
+      for (let page = 1; page <= 40; page++) {
+        const batch = await cataloguePage(page);
+        if (batch === null) { exportState = "error"; exportProgress = null; return; }
+        products.push(...batch);
+        exportProgress = { done: products.length, total: Math.max(digest.count ?? 0, products.length) };
+        if (batch.length < 250) break;
+      }
     }
 
     exportFilename = catalogueFilename(domain, new Date());
@@ -233,6 +325,7 @@
         progress={exportProgress}
         filename={exportFilename}
         onexport={runExport}
+        onretryread={retryCatalogueRead}
       />
       <BestSellers products={bestSellers} currency={digest?.currency ?? null} />
     {:else if status !== "idle"}
@@ -240,7 +333,7 @@
            so it does not carry "not loading, not result, not idle" into the
            child's prop type. PanelStatus minus those three IS TerminalStatus,
            and the branch conditions above are the proof. -->
-      <TerminalState status={status as TerminalStatus} onretry={() => runDetection()} />
+      <TerminalState status={status as TerminalStatus} {domain} onretry={() => runDetection()} />
     {/if}
   </div>
 

@@ -65,23 +65,15 @@ export function toCsv(products: CatalogueProduct[]): string {
         img?.src ?? "",
         img?.position ?? "",
         img?.alt ?? "",
-        "",                                   // SEO Title -- see below
-        "",                                   // SEO Description -- see below
+        // Present only on the Storefront API path; /products.json carries no SEO,
+        // so those exports still write blanks rather than inventing them.
+        first ? (p.seo_title ?? "") : "",
+        first ? (p.seo_description ?? "") : "",
         first ? (p.published_at ? "active" : "draft") : "",
       ].map(escape).join(","));
     }
   }
 
-  // SEO Title and SEO Description stay blank on purpose. The store's real
-  // values live in Shopify admin, not in the public feed this extension
-  // reads, so there is no observed value to put here. It would be easy
-  // enough to synthesise one from the title and a stripped body_html, but
-  // this file is a real Shopify product import CSV that a user may re-import
-  // into a real store, and a synthesised value sitting in a column next to
-  // genuinely observed ones would be indistinguishable from data the
-  // storefront actually published. Leaving the column blank is the honest
-  // option; inventing a plausible-looking value is not.
-  //
   // The BOM is not decoration: without it Excel mis-renders non-ASCII product
   // titles, which most catalogues contain.
   return "﻿" + lines.join("\n") + "\n";

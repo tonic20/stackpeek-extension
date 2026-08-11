@@ -43,7 +43,7 @@ export function harnessProps(
   pages: CollectionPages | null = null,
 ): Record<string, unknown> {
   const empty = {
-    available: false, count: 0, variants: 0,
+    available: false, reason: "not_public", count: 0, variants: 0,
     priceMin: null, priceMax: null, newest: null, currency: null, index: [],
   };
 

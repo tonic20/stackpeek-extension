@@ -74,7 +74,7 @@ describe("every sp- class the panel emits is defined in panel.css", () => {
       props: {
         runner: fakeRunner, autostart: true, delays: [0],
         catalogue: async () => ({
-          available: true, count: 2, variants: 3, priceMin: 10, priceMax: 40,
+          available: true, reason: null, count: 2, variants: 3, priceMin: 10, priceMax: 40,
           newest: "2026-08-01T00:00:00Z", currency: "USD",
           index: [
             { handle: "a", title: "Runner up", price: "10.00" },

@@ -36,6 +36,13 @@ describe("fetchCatalogueDigest", () => {
 
     expect((await fetchCatalogueDigest()).available).toBe(false);
   });
+
+  it("calls an injection failure unreadable, not 'not public'", async () => {
+    (globalThis as any).chrome.scripting.executeScript = vi.fn(async () => { throw new Error("denied"); });
+    const d = await fetchCatalogueDigest();
+    expect(d.available).toBe(false);
+    expect(d.reason).toBe("unreadable");
+  });
 });
 
 describe("fetchCataloguePage", () => {

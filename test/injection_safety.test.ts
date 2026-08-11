@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { collectCatalogueDigest, collectCataloguePage, collectCollectionPages } from "../lib/catalogue";
 import { collectSignals } from "../lib/collector";
+import { collectStorefrontQuery, collectProductSitemapCount } from "../lib/storefront";
 
 // chrome.scripting.executeScript({func}) serialises the function's OWN SOURCE
 // via toString() and nothing else. Imports, module-scope constants and any other
@@ -56,5 +57,26 @@ describe("functions injected into the page are self-contained", () => {
     const signals = await asInjected(collectSignals)([] as never, 0 as never);
 
     expect(signals).toHaveProperty("script_urls");
+  });
+
+  it("collectStorefrontQuery runs with only its own source", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true, status: 200, json: async () => ({ data: { products: { nodes: [] } } }),
+    } as unknown as Response)) as unknown as typeof fetch;
+
+    const out = await asInjected(collectStorefrontQuery)(["2025-01"] as never, "{}" as never);
+
+    expect(out).toEqual({ products: { nodes: [] } });
+  });
+
+  it("collectProductSitemapCount runs with only its own source", async () => {
+    globalThis.fetch = vi.fn(async (url: string) => {
+      if (url.endsWith("/sitemap.xml")) {
+        return { ok: true, text: async () => `<sitemapindex><sitemap><loc>https://s/sitemap/products.xml</loc></sitemap></sitemapindex>` } as unknown as Response;
+      }
+      return { ok: true, text: async () => `<urlset><url><loc>https://s/products/a</loc></url></urlset>` } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    expect(await asInjected(collectProductSitemapCount)()).toBe(1);
   });
 });

@@ -102,6 +102,23 @@ describe("toCsv", () => {
     expect(at("SEO Description")).toBe("");
   });
 
+  it("writes SEO fields when the source carried them", () => {
+    const csv = toCsv([{ handle: "a", title: "A", seo_title: "Buy A", seo_description: "The best A",
+      variants: [{ price: "1.00" }], images: [] }]);
+    const row = csv.split("\n")[1];
+    expect(row).toContain("Buy A");
+    expect(row).toContain("The best A");
+  });
+
+  // /products.json carries no SEO, so that path must keep writing blanks rather
+  // than inventing them from the title.
+  it("leaves SEO blank when the source had none", () => {
+    const csv = toCsv([{ handle: "a", title: "A", variants: [{ price: "1.00" }], images: [] }]);
+    const row_cells = cells(rows(csv)[1]);
+    expect(row_cells[row_cells.length - 3]).toBe("");
+    expect(row_cells[row_cells.length - 2]).toBe("");
+  });
+
   it("leaves the columns the feed cannot supply blank", () => {
     const csv = toCsv([product()]);
     const at = (name: string) => cells(rows(csv)[1])[CSV_HEADER.indexOf(name as never)];

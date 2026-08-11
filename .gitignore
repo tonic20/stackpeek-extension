@@ -1,3 +1,9 @@
 node_modules/
 .output/
 .wxt/
+# Capture directories built by test/capture_catalogue and test/remote_fetch.
+# They live under test/ rather than in the system temp directory because
+# nothing here may read outside extension/, and they are removed after each
+# test -- these two lines only cover a run that crashed before cleanup.
+test/capture-*/
+test/fetch-*/

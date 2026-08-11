@@ -6,9 +6,9 @@
 <!--
   The first round's placeholder. A skeleton is a promise about the next frame,
   so it previews what will actually arrive: Theme, Apps, Trackers,
-  Infrastructure. The bundle's fourth panel is Products, which is not a built
-  feature -- promising a section that never renders is the same fiction the
-  demo spec exists to remove (design D6).
+  Infrastructure, and Products. Best sellers is omitted because that section
+  renders only when a product ranking was actually proven, so promising it would
+  recreate the fiction the demo spec exists to remove (design D6).
 
   The label sits in .sp-sec__hd rather than loose in .sp-sec because that is
   where the real sections put it, and it is the only thing in panel.css that
@@ -47,6 +47,15 @@
     <div class="sp-skel-rows">
       <div class="sp-skel sp-skel--row" style="width:48%"></div>
       <div class="sp-skel sp-skel--row" style="width:36%"></div>
+    </div>
+  </section>
+
+  <section class="sp-sec">
+    <div class="sp-sec__hd"><span class="sp-label">Products</span></div>
+    <div class="sp-skel-rows">
+      <div class="sp-skel sp-skel--row" style="width:42%"></div>
+      <div class="sp-skel sp-skel--row" style="width:56%"></div>
+      <div class="sp-skel sp-skel--row" style="width:38%"></div>
     </div>
   </section>
 </div>

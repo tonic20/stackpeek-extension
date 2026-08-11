@@ -8,6 +8,13 @@ describe("TerminalState", () => {
 
     expect(screen.getByText("no match").classList.contains("sp-state__code")).toBe(true);
     expect(screen.getByText("Not a Shopify store.").classList.contains("sp-state__title")).toBe(true);
+    // The signals ARE sent -- that is how is_shopify is decided (lib/detect_runner.ts).
+    // What is true is narrower than "nothing was stored": DetectController
+    // enqueues RecordDetectionJob solely when is_shopify, but it touches the
+    // anonymous install row (detect_count, last_seen_at) on every final round.
+    // So the negation is scoped to the page, matching the privacy page and the
+    // store listing, both of which disclose that counter.
+    expect(screen.getByText("Checked against the catalogue and no match. Nothing about the page was stored.")).toBeTruthy();
     const button = screen.getByRole("button", { name: "Scan again" });
     expect(button.classList.contains("sp-btn--quiet")).toBe(true);
     expect(container.querySelector('[role="status"]')).toBeTruthy();
@@ -72,5 +79,45 @@ describe("TerminalState", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(onretry).toHaveBeenCalledOnce();
+  });
+
+  it("audits itself when pointed at our own site", () => {
+    render(TerminalState, { status: "not_shopify", domain: "stackpeek.app", onretry: () => {} });
+    expect(screen.getByText("it's us")).toBeTruthy();
+    expect(screen.getByText("You pointed the detector at the detector.")).toBeTruthy();
+    // Rails/Postgres/DigitalOcean, not "behind Cloudflare": the site is not
+    // proxied by Cloudflare, only the Web Analytics beacon is Cloudflare's.
+    expect(
+      screen.getByText(
+        "Not Shopify. Rails and Postgres on a DigitalOcean box — plus one analytics beacon, the only third-party script on the page. We don't exempt ourselves.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Scan again" })).toBeTruthy();
+  });
+
+  it("audits itself on the www host too", () => {
+    render(TerminalState, { status: "not_shopify", domain: "www.stackpeek.app", onretry: () => {} });
+    expect(screen.getByText("it's us")).toBeTruthy();
+  });
+
+  // An explicit host list, not a substring test: "notstackpeek.app" is somebody
+  // else's domain and must get the ordinary answer.
+  it("leaves lookalike domains alone", () => {
+    render(TerminalState, { status: "not_shopify", domain: "notstackpeek.app", onretry: () => {} });
+    expect(screen.queryByText("it's us")).toBeNull();
+    expect(screen.getByText("Not a Shopify store.")).toBeTruthy();
+  });
+
+  // Exact array membership already rejects this; the test pins that it stays
+  // rejected if anyone later reaches for endsWith or a regex instead.
+  it("leaves a subdomain-style lookalike alone", () => {
+    render(TerminalState, { status: "not_shopify", domain: "stackpeek.app.evil.com", onretry: () => {} });
+    expect(screen.queryByText("it's us")).toBeNull();
+    expect(screen.getByText("Not a Shopify store.")).toBeTruthy();
+  });
+
+  it("only fires on the non-Shopify state", () => {
+    render(TerminalState, { status: "error", domain: "stackpeek.app", onretry: () => {} });
+    expect(screen.queryByText("it's us")).toBeNull();
   });
 });

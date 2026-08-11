@@ -44,7 +44,7 @@ const SECTIONS: [string, unknown, Record<string, unknown>, string, string][] = [
     { items: [{ name: "Shopify Payments" }] },
     "sp-infrastructure-label", "Infrastructure"],
   ["Products", ProductSummary,
-    { digest: { available: true, count: 12, variants: 20, priceMin: 1, priceMax: 9, newest: null, currency: "USD", index: [] }, onexport: () => {} },
+    { digest: { available: true, reason: null, count: 12, variants: 20, priceMin: 1, priceMax: 9, newest: null, currency: "USD", index: [] }, onexport: () => {}, onretryread: () => {} },
     "sp-products-label", "Products"],
   ["Best sellers", BestSellers,
     { products: [{ handle: "a", title: "A", price: "1.00" }, { handle: "b", title: "B", price: "2.00" }] },

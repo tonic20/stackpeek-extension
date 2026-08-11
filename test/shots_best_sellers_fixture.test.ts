@@ -71,7 +71,7 @@ const collectionPageHtml = (entries: CatalogueEntry[]): string => {
 };
 
 const digestOf = (index: CatalogueEntry[]): CatalogueDigest => ({
-  available: true, count: index.length, variants: index.length,
+  available: true, reason: null, count: index.length, variants: index.length,
   priceMin: 5, priceMax: 150, newest: null, currency: "USD", index,
 });
 

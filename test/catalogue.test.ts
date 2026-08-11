@@ -60,6 +60,20 @@ describe("collectCatalogueDigest", () => {
     expect((await collectCatalogueDigest(25)).available).toBe(false);
   });
 
+  it("calls a 404 feed not public, because the store answered", async () => {
+    globalThis.fetch = feed([[]], 404) as unknown as typeof fetch;
+    const d = await collectCatalogueDigest(25);
+    expect(d.available).toBe(false);
+    expect(d.reason).toBe("not_public");
+  });
+
+  it("calls a thrown fetch unreadable, because the store never answered", async () => {
+    globalThis.fetch = vi.fn(async () => { throw new TypeError("network"); }) as unknown as typeof fetch;
+    const d = await collectCatalogueDigest(25);
+    expect(d.available).toBe(false);
+    expect(d.reason).toBe("unreadable");
+  });
+
   // /products.json carries no currency at all. Rendering "$" on a euro store
   // would be a quiet, plausible fabrication.
   it("takes the currency from window.Shopify", async () => {

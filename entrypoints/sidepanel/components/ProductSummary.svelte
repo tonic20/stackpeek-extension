@@ -8,14 +8,23 @@
     progress = null,
     filename = null,
     onexport,
+    onretryread,
   }: {
     // null means the catalogue is still being read. Distinct from an
     // unavailable digest, which is a settled answer.
     digest: CatalogueDigest | null;
     state?: ExportState;
-    progress?: { done: number; total: number } | null;
+    // total is null when the catalogue's size could not be read: the export
+    // still runs, it just has no denominator to count towards, so the note
+    // reports what has been exported and the track is omitted rather than
+    // drawn against a made-up total.
+    progress?: { done: number; total: number | null } | null;
     filename?: string | null;
     onexport: () => void;
+    // Re-attempts the READ, not an export -- reusing onexport here made the
+    // button silently no-op, since runExport bails on `!digest?.available`
+    // and an unreadable digest is exactly that.
+    onretryread: () => void;
   } = $props();
 
   const n = (value: number) => value.toLocaleString("en-US");
@@ -48,11 +57,25 @@
   const READING = "Reading the catalogue…";
 
   const meta = $derived(
-    state === "fetching" && progress ? `${n(progress.done)} / ${n(progress.total)}`
+    state === "fetching" && progress
+      // A total we never read is not a total. "250 / 250" while the walk is
+      // still going would be a wrong answer dressed as a precise one.
+      ? (progress.total === null ? `${n(progress.done)} exported` : `${n(progress.done)} / ${n(progress.total)}`)
     : state === "done" && filename ? filename
     : state === "error" ? "Couldn't read the catalogue."
-    : digest ? `${n(digest.count)} products · Shopify import format`
-    : READING,
+    : !digest ? READING
+    // An unknown size renders no size. The catalogue is readable -- the export
+    // below works -- but the Storefront path takes its count from the sitemap,
+    // and a sitemap that 403s leaves us with nothing to say about how big the
+    // store is. "0 products" here would be a false statement about the
+    // merchant, not a missing one.
+    : digest.count === null ? "Shopify import format"
+    // A truncated export that says nothing is the silent failure this line
+    // exists to remove: the count is the store's real total, so the export's
+    // ceiling has to be stated beside it rather than left to be discovered in
+    // the file.
+    : digest.capped ? `${n(digest.count)} products · exports the first 10,000`
+    : `${n(digest.count)} products · Shopify import format`,
   );
 
   // The only indeterminate branch above. Every other state is a settled answer,
@@ -66,10 +89,17 @@
 </script>
 
 <!-- Empty while loading rather than 0: a count of zero is a wrong answer, not a
-     pending one (design D12). -->
-<Section id="products" heading="Products" count={digest?.available ? n(digest.count) : ""}>
+     pending one (design D12). Empty for the same reason when the catalogue is
+     readable but its size is not: an unread count and a count of zero are
+     different facts, and only one of them is ours to state. -->
+<Section id="products" heading="Products" count={digest?.available && digest.count !== null ? n(digest.count) : ""}>
   {#if digest && !digest.available}
-    <p class="sp-quiet">Catalogue not public on this store.</p>
+    {#if digest.reason === "unreadable"}
+      <p class="sp-quiet">Couldn't read the catalogue.</p>
+      <button class="sp-btn sp-btn--quiet" type="button" onclick={onretryread}>Retry</button>
+    {:else}
+      <p class="sp-quiet">Catalogue not public on this store.</p>
+    {/if}
   {:else}
     <div class="sp-facts">
       <div class="sp-fact">
@@ -78,7 +108,7 @@
       </div>
       <div class="sp-fact">
         <span class="sp-fact__k">Variants</span>
-        <span class="sp-fact__v">{digest ? n(digest.variants) : "—"}</span>
+        <span class="sp-fact__v">{digest && digest.variants !== null ? n(digest.variants) : "—"}</span>
       </div>
       <div class="sp-fact">
         <span class="sp-fact__k">Newest</span>
@@ -103,7 +133,10 @@
       </button>
     {/if}
 
-    {#if state === "fetching" && progress}
+    <!-- No track without a total. A determinate bar is a claim about how much
+         is left; with an unread count there is nothing to draw it against, and
+         the note above still reports what has been exported. -->
+    {#if state === "fetching" && progress && progress.total !== null}
       <div class="sp-track">
         <div class="sp-fill" style="width:{((progress.done / progress.total) * 100).toFixed(4)}%"></div>
       </div>

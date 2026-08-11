@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/svelte";
+import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import App from "../entrypoints/sidepanel/App.svelte";
 import * as api from "../lib/api";
 import type { DetectResponse } from "../lib/api";
@@ -325,7 +325,7 @@ describe("App state machine", () => {
   });
 
   const digestOf = (over: Record<string, unknown> = {}) => ({
-    available: true, count: 2, variants: 3, priceMin: 10, priceMax: 40,
+    available: true, reason: null, count: 2, variants: 3, priceMin: 10, priceMax: 40,
     newest: "2026-08-01T00:00:00Z", currency: "USD",
     index: [
       { handle: "a", title: "Runner up", price: "10.00" },
@@ -469,6 +469,233 @@ describe("App state machine", () => {
 
     expect(await screen.findByText("2 products · Shopify import format")).toBeTruthy();
     expect(screen.queryByText("Best sellers")).toBeNull();
+  });
+
+  // A capped read cannot be ranked by joining: the index is the first 10,000
+  // products and the best-selling order covers all of them, so the join drops
+  // whatever ranks above the cap and renumbers the survivors from 1. The panel
+  // already had the right answer one line further down -- Shopify's own
+  // BEST_SELLING sort, which no read cap touches -- and this is what makes it
+  // reachable. The collection pages below are deliberately good: the fallback
+  // must fire because the READ was capped, not because the pages were bad.
+  it("asks Shopify for the ranking when the catalogue read was capped", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const catalogue = vi.fn(async () => digestOf({ count: 10000, capped: true }));
+    const storefrontCatalogue = vi.fn(async () => digestOf({ count: 34935, variants: null }));
+    const collectionPages = vi.fn(async () => ({
+      bestSelling: gridOf(["b", "a"]), alphabetical: gridOf(["a", "b"]),
+    }));
+    const storefrontBestSellers = vi.fn(async () => [
+      { handle: "z", title: "Actual number one", price: "9.00" },
+      { handle: "y", title: "Actual number two", price: "8.00" },
+    ]);
+    render(App, { props: { runner: fakeRunner, autostart: true, delays: [0], catalogue,
+                           storefrontCatalogue, collectionPages, storefrontBestSellers } });
+
+    expect(await screen.findByText("Actual number one")).toBeTruthy();
+    expect(storefrontBestSellers).toHaveBeenCalled();
+    // The prefix join's answer, which must not be what "#1" points at.
+    expect(screen.queryByText("Bestseller")).toBeNull();
+  });
+
+  // Its own postDetect mock, like the tests below it: this file sets no
+  // clearMocks, so without one this test would inherit whatever spy a
+  // preceding test happened to leave behind -- and if that spy ever stopped
+  // resolving is_shopify: true, ProductSummary would never render and the
+  // assertions here would fail for a reason that has nothing to do with the
+  // fallback.
+  it("falls back to the Storefront path when products.json is not public", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const storefront = vi.fn(async () => ({
+      available: true, reason: null, count: 41762, variants: null, priceMin: 0.75,
+      priceMax: 299.99, newest: null, currency: "USD", index: [],
+    }));
+    render(App, {
+      runner: async () => ({ signals: {}, url: "https://headless.example/" }),
+      catalogue: async () => ({ available: false, reason: "not_public", count: 0, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+      storefrontCatalogue: storefront,
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+    await waitFor(() => expect(storefront).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText("41,762")).toBeTruthy());
+  });
+
+  // The panel-level statement of the fix: a headless store whose catalogue is
+  // larger than the export can reach must say so where the count is shown.
+  // Before this, the Storefront digest never set `capped`, ProductSummary's
+  // disclosure branch never fired, and the user got 10,000 of 41,762 products
+  // with nothing anywhere saying so.
+  it("discloses the export ceiling on a Storefront catalogue larger than it", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    render(App, {
+      runner: async () => ({ signals: {}, url: "https://headless.example/" }),
+      catalogue: async () => ({ available: false, reason: "not_public", count: 0, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+      storefrontCatalogue: async () => ({ available: true, reason: null, count: 41762, capped: true,
+        variants: null, priceMin: null, priceMax: null, newest: null, currency: "USD", index: [] }),
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+
+    expect(await screen.findByText("41,762 products · exports the first 10,000")).toBeTruthy();
+  });
+
+  // The cap-buster adopts the sitemap's exact count, and the variant total must
+  // not be left standing beside it. That figure was summed over the first
+  // 10,000 products the walk could reach, so under a 34,935-product total it is
+  // a floor presented as a total -- the same overclaim the cap-buster exists to
+  // remove, one row further down the panel. An em dash is what the panel
+  // already says for "we did not read this".
+  it("drops the variant total when it adopts an exact count it did not count variants for", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const { container } = render(App, {
+      runner: async () => ({ signals: {}, url: "https://kith.example/" }),
+      // What a 40-page walk of a bigger feed returns: the cap as a count, and a
+      // variant total counted from exactly those 10,000 products.
+      catalogue: async () => ({ available: true, reason: null, count: 10000, capped: true,
+        variants: 26431, priceMin: 18, priceMax: 240, newest: null, currency: "USD", index: [] }),
+      storefrontCatalogue: async () => ({ available: true, reason: null, count: 34935, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: "USD", index: [] }),
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+
+    expect(await screen.findByText("34,935 products · exports the first 10,000")).toBeTruthy();
+    const variants = [ ...container.querySelectorAll(".sp-fact") ]
+      .find((fact) => fact.querySelector(".sp-fact__k")?.textContent === "Variants")!;
+    expect(variants.querySelector(".sp-fact__v")!.textContent).toBe("—");
+    expect(screen.queryByText("26,431")).toBeNull();
+  });
+
+  // The same fault as the variant total, one row over. /products.json is served
+  // published_at DESCENDING, so the 10,000 the walk reached are the NEWEST
+  // 10,000 and the unread remainder is systematically the older stock -- where
+  // clearance pricing lives. Both endpoints are therefore bounds in the wrong
+  // direction: the true minimum can only be lower and the true maximum only
+  // higher. Printed under a 34,935-product total it reads as the range of all
+  // of them.
+  it("drops the price range when it adopts an exact count it did not price", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const { container } = render(App, {
+      runner: async () => ({ signals: {}, url: "https://kith.example/" }),
+      catalogue: async () => ({ available: true, reason: null, count: 10000, capped: true,
+        variants: 26431, priceMin: 6, priceMax: 43200, newest: null, currency: "USD", index: [] }),
+      storefrontCatalogue: async () => ({ available: true, reason: null, count: 34935, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: "USD", index: [] }),
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+
+    expect(await screen.findByText("34,935 products · exports the first 10,000")).toBeTruthy();
+    const range = [ ...container.querySelectorAll(".sp-fact") ]
+      .find((fact) => fact.querySelector(".sp-fact__k")?.textContent === "Price range")!;
+    expect(range.querySelector(".sp-fact__v")!.textContent).toBe("—");
+  });
+
+  // The sitemap 403s, the API answers. The catalogue is readable and the export
+  // works; only its size is unknown, and an unknown size renders as no size.
+  it("states no product count when the Storefront path could not read one", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const { container } = render(App, {
+      runner: async () => ({ signals: {}, url: "https://headless.example/" }),
+      catalogue: async () => ({ available: false, reason: "not_public", count: 0, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+      storefrontCatalogue: async () => ({ available: true, reason: null, count: null, variants: null,
+        priceMin: 1, priceMax: 9, newest: null, currency: "USD", index: [] }),
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+
+    expect(await screen.findByText("Shopify import format")).toBeTruthy();
+    expect(screen.queryByText(/0 products/)).toBeNull();
+    expect(container.querySelector('[aria-labelledby="sp-products-label"] .sp-count')!.textContent).toBe("");
+    expect(screen.getByRole("button", { name: "Export catalogue CSV" })).not.toBeDisabled();
+  });
+
+  // A read that failed is not evidence the store has no catalogue, so the
+  // second source must not be consulted -- and the honest message must survive.
+  //
+  // The postDetect mock is load-bearing, not boilerplate. This is the only
+  // automated proof that the fallback fires on "not_public" and never on
+  // "unreadable", and without a Shopify result there is no ProductSummary at
+  // all -- `expect(storefront).not.toHaveBeenCalled()` would then pass
+  // vacuously, guarding nothing.
+  it("does not fall back when the read merely failed", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const storefront = vi.fn();
+    render(App, {
+      runner: async () => ({ signals: {}, url: "https://s.example/" }),
+      catalogue: async () => ({ available: false, reason: "unreadable", count: 0, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+      storefrontCatalogue: storefront,
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+    await waitFor(() => expect(screen.getByText("Couldn't read the catalogue.")).toBeTruthy());
+    expect(storefront).not.toHaveBeenCalled();
+  });
+
+  // The button that proves Retry is not dead: clicking it must re-attempt the
+  // READ (not the export, which bails immediately on an unavailable digest and
+  // was the original bug). Self-contained -- its own postDetect mock and its
+  // own catalogue mock -- because this file has no clearMocks/restoreMocks and
+  // relying on state left by a neighbouring test has caused trouble here before.
+  it("re-reads the catalogue when Retry is clicked on an unreadable digest", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const catalogue = vi.fn()
+      .mockResolvedValueOnce({
+        available: false, reason: "unreadable", count: 0, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: null, index: [],
+      })
+      .mockResolvedValueOnce(digestOf());
+
+    render(App, { props: { runner: fakeRunner, autostart: true, delays: [0], catalogue } });
+
+    expect(await screen.findByText("Couldn't read the catalogue.")).toBeTruthy();
+    expect(catalogue).toHaveBeenCalledOnce();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("2 products · Shopify import format")).toBeTruthy();
+    expect(catalogue).toHaveBeenCalledTimes(2);
+  });
+
+  it("exports through the Storefront path when that is where the digest came from", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const storefrontExport = vi.fn(async () => ([{ handle: "a", title: "A", variants: [], images: [] }]));
+    render(App, {
+      runner: async () => ({ signals: {}, url: "https://headless.example/" }),
+      catalogue: async () => ({ available: false, reason: "not_public", count: 0, variants: null,
+        priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+      storefrontCatalogue: async () => ({ available: true, reason: null, count: 3, variants: null,
+        priceMin: 1, priceMax: 9, newest: null, currency: "USD", index: [] }),
+      storefrontExport,
+      watch: () => ({ stop: () => {} }),
+      delays: [0],
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: /Export/ })).toBeTruthy());
+    await fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    await waitFor(() => expect(storefrontExport).toHaveBeenCalled());
   });
 
   // .sp-panel is the design's shell: it carries the container query the wide
