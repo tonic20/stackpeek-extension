@@ -3,10 +3,11 @@
 // never throws -- a failure here must degrade to a stated "couldn't read",
 // never take the scan result off the screen.
 import { collectStorefrontQuery, collectProductSitemapCount } from "./storefront";
-import { DIGEST_EDGES_QUERY, BEST_SELLERS_QUERY, EXPORT_PAGE_QUERY, EXPORT_PAGE_SIZE } from "./storefront_queries";
+import { DIGEST_EDGES_QUERY, BEST_SELLERS_QUERY, EXPORT_PAGE_QUERY } from "./storefront_queries";
 import { adaptStorefrontProduct } from "./storefront_adapter";
 import { resolveStorefrontVersions } from "./storefront_versions";
-import type { CatalogueDigest, CatalogueEntry, CatalogueProduct } from "./catalogue_types";
+import { EXPORT_CEILING, EXPORT_MAX_PAGES } from "./export_limits";
+import type { CatalogueDigest, CatalogueProduct, CatalogueEntry, ExportWalk } from "./catalogue_types";
 
 // count is null, not 0, for the same reason `variants` is: we did not read the
 // catalogue, so we know nothing about its size. Nothing renders a count for an
@@ -15,17 +16,6 @@ const UNREADABLE: CatalogueDigest = {
   available: false, reason: "unreadable", count: null, variants: null, priceMin: null,
   priceMax: null, newest: null, currency: null, index: [],
 };
-
-// How many pages the export walks before it stops. 40 x 250, the same ceiling
-// as the /products.json export, kept so one number describes the product's
-// limit rather than two.
-const MAX_PAGES = 40;
-
-// Derived, never written out again: the export ceiling IS the walk's reach, and
-// a second literal is how the ceiling and the sentence disclosing it drift
-// apart. A count above this means the export cannot deliver the whole
-// catalogue, which is what `capped` says.
-const EXPORT_CEILING = MAX_PAGES * EXPORT_PAGE_SIZE;
 
 async function activeTabId(): Promise<number | undefined> {
   const [tab] = await globalThis.chrome.tabs.query({ active: true, currentWindow: true });
@@ -106,26 +96,31 @@ export async function fetchStorefrontBestSellers(limit: number): Promise<Catalog
 
 export async function fetchStorefrontExport(
   onProgress: (done: number) => void,
-): Promise<CatalogueProduct[] | null> {
+): Promise<ExportWalk | null> {
   try {
     const versions = await resolveStorefrontVersions();
     const products: CatalogueProduct[] = [];
     let cursor: string | null = null;
 
-    for (let page = 0; page < MAX_PAGES; page++) {
+    for (let page = 0; page < EXPORT_MAX_PAGES; page++) {
       const data = (await inject(collectStorefrontQuery, [versions, EXPORT_PAGE_QUERY(cursor)])) as any;
       // A failure on the first page means no export at all; later, keep what we
-      // have rather than discarding minutes of work.
-      if (!data?.products) return page === 0 ? null : products;
+      // have rather than discarding minutes of work -- but say that the file is
+      // short, which is what `truncated` is for.
+      if (!data?.products) return page === 0 ? null : { products, truncated: true };
 
       for (const node of data.products.nodes ?? []) products.push(adaptStorefrontProduct(node));
       onProgress(products.length);
 
-      if (!data.products.pageInfo?.hasNextPage) break;
+      // The store saying there is no next page is the only thing that makes
+      // this file the whole catalogue. Every other exit -- the page ceiling
+      // below, a missing cursor, a read that died -- leaves products behind,
+      // and a file that leaves products behind has to admit it.
+      if (!data.products.pageInfo?.hasNextPage) return { products, truncated: false };
       cursor = data.products.pageInfo.endCursor ?? null;
       if (!cursor) break;
     }
-    return products;
+    return { products, truncated: true };
   } catch {
     return null;
   }

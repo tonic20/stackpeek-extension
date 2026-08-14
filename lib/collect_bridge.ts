@@ -4,7 +4,8 @@ import { InjectionDeniedError } from "./errors";
 
 // How long the injected collector may wait in-page for window.Shopify. See
 // lib/collector.ts for why the wait exists at all.
-export const SHOPIFY_WAIT_MS = 1500;
+import { SHOPIFY_WAIT_MS } from "./injection_args";
+export { SHOPIFY_WAIT_MS };
 
 // Truncates a tab URL down to scheme + host (+ port), dropping path, query
 // string and fragment. This is the one place the value is produced, so it is

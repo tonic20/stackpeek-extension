@@ -1,6 +1,6 @@
 {
   "name": "extension",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Stackpeek Shopify theme & app detector extension",
   "private": true,
   "type": "module",
@@ -14,7 +14,6 @@
     "compile": "svelte-check",
     "postinstall": "wxt prepare",
     "test": "vitest run",
-    "capture:catalogue": "vite build --ssr scripts/capture_catalogue.ts --outDir scripts/.build --emptyOutDir && node scripts/.build/capture_catalogue.js",
     "shots": "NODE_OPTIONS=--max-http-header-size=131072 vite --config shots/vite.harness.config.ts"
   },
   "_overrides_note": "web-ext is wxt 0.21's optional peer for launching a dev browser (npm run dev / dev:firefox). It pins adm-zip and shell-quote to ranges that exclude the patched releases, so npm audit fix is a no-op and these overrides force the fixed versions instead. Neither is bundled into the extension -- they run only in the local dev launcher. Extension CI gates on an unscoped `npm audit`, so these are load-bearing: removing one turns CI red rather than merely raising the noise. Drop each once web-ext ships a bump that covers it, which `npm audit` passing without it will confirm.",

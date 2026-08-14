@@ -9,7 +9,8 @@
   import type { PanelStatus, TerminalStatus } from "../../lib/panel_status";
   import { fetchCatalogueDigest, fetchCataloguePage, fetchCollectionPages, BEST_SELLER_LIMIT } from "../../lib/catalogue_bridge";
   import { fetchStorefrontDigest, fetchStorefrontBestSellers, fetchStorefrontExport } from "../../lib/storefront_bridge";
-  import type { CatalogueDigest, CatalogueEntry, CatalogueProduct, CollectionPages, ExportState } from "../../lib/catalogue_types";
+  import { EXPORT_CEILING, EXPORT_MAX_PAGES, EXPORT_PAGE_SIZE } from "../../lib/export_limits";
+  import type { CatalogueDigest, CatalogueEntry, CatalogueProduct, CollectionPages, ExportState, ExportWalk } from "../../lib/catalogue_types";
   import { toCsv } from "../../lib/csv";
   import { downloadText, catalogueFilename } from "../../lib/download";
   import { rankCatalogue } from "../../lib/ranking";
@@ -46,7 +47,7 @@
     storefrontBestSellers?: (limit: number) => Promise<CatalogueEntry[]>;
     cataloguePage?: (page: number) => Promise<CatalogueProduct[] | null>;
     collectionPages?: () => Promise<CollectionPages | null>;
-    storefrontExport?: (onProgress: (done: number) => void) => Promise<CatalogueProduct[] | null>;
+    storefrontExport?: (onProgress: (done: number) => void) => Promise<ExportWalk | null>;
   } = $props();
 
   let status: PanelStatus = $state("idle");
@@ -219,6 +220,17 @@
     loadCatalogue(domain);
   }
 
+  // What the progress counts against: the export's reach, not the store's size.
+  // A denominator of 42,098 on a walk that stops at 10,000 draws a bar that
+  // fills a quarter of the way and then announces success -- which reads as a
+  // botched export of the whole catalogue rather than a finished export of the
+  // part we are allowed to take.
+  //
+  // Still bounded below by `done`: the count comes from a sitemap, and a
+  // sitemap that undercounts must not produce a bar drawn past full.
+  const exportTotal = (known: number | null, done: number): number | null =>
+    known === null ? null : Math.max(Math.min(known, EXPORT_CEILING), done);
+
   async function runExport() {
     if (!digest?.available) return;
     exportState = "fetching";
@@ -229,27 +241,37 @@
     // null when the catalogue's size was never read. Carried through rather
     // than defaulted to 0 or to the running total: the progress note and the
     // track both key on it, and either substitute would invent a denominator.
-    exportProgress = { done: 0, total: digest.count };
+    exportProgress = { done: 0, total: exportTotal(digest.count, 0) };
 
     const products: CatalogueProduct[] = [];
+    let truncated = false;
     if (digestSource === "storefront") {
-      const all = await storefrontExport((done) => {
-        const known = digest?.count ?? null;
-        exportProgress = { done, total: known === null ? null : Math.max(known, done) };
+      const walk = await storefrontExport((done) => {
+        exportProgress = { done, total: exportTotal(digest?.count ?? null, done) };
       });
-      if (all === null) { exportState = "error"; exportProgress = null; return; }
-      products.push(...all);
+      if (walk === null) { exportState = "error"; exportProgress = null; return; }
+      products.push(...walk.products);
+      truncated = walk.truncated;
     } else {
-      for (let page = 1; page <= 40; page++) {
+      for (let page = 1; page <= EXPORT_MAX_PAGES; page++) {
         const batch = await cataloguePage(page);
         if (batch === null) { exportState = "error"; exportProgress = null; return; }
         products.push(...batch);
-        exportProgress = { done: products.length, total: Math.max(digest.count ?? 0, products.length) };
-        if (batch.length < 250) break;
+        exportProgress = { done: products.length, total: exportTotal(digest.count, products.length) };
+        // A short page is the feed running out of products. A full one on the
+        // last page we are allowed to read is the walk running out of pages,
+        // which is a different thing and leaves the rest of the store behind.
+        if (batch.length < EXPORT_PAGE_SIZE) break;
+        truncated = page === EXPORT_MAX_PAGES;
       }
     }
 
-    exportFilename = catalogueFilename(domain, new Date());
+    // The count beside the button is the whole store; what the file holds is
+    // what the walk reached. Naming the second against the first is the whole
+    // point -- "10,000 of 42,098" is the sentence the CSV could not otherwise
+    // say about itself.
+    exportFilename = catalogueFilename(domain, new Date(),
+      truncated ? { exported: products.length, total: digest.count } : null);
     downloadText(exportFilename, toCsv(products));
     exportProgress = null;
     exportState = "done";

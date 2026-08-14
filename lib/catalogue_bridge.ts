@@ -3,7 +3,8 @@ import type { CatalogueDigest, CatalogueProduct, CollectionPages } from "./catal
 
 // How many ranks the panel keeps. 25 is the expanded size of the best-sellers
 // list (design D13); more would be data we cannot show.
-export const BEST_SELLER_LIMIT = 25;
+import { BEST_SELLER_LIMIT } from "./injection_args";
+export { BEST_SELLER_LIMIT };
 
 // Every failure path here is a failure to READ, never evidence about the store:
 // no tab, a refused injection, a thrown executeScript. Reporting these as

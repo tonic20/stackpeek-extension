@@ -17,7 +17,24 @@ export function downloadText(filename: string, text: string, mime = "text/csv;ch
   URL.revokeObjectURL(url);
 }
 
-export function catalogueFilename(domain: string, date: Date): string {
+// A truncated export names itself. The disclosure beside the count is on screen
+// for as long as the panel is, which is not long enough: what the merchant
+// keeps is the file, and the file cannot show its own shortfall. Its row count
+// certainly cannot -- Shopify's import format writes one row per variant, so
+// the first 10,000 products of www.fashionnova.com came out as 75,530 rows and
+// read as a complete 42,098-product catalogue. The name is the only carrier
+// left; a note row inside the CSV would be a row the importer tries to import.
+//
+// total is null when the store's size was never read: the file still says it is
+// partial, because the walk knows that much on its own.
+export function catalogueFilename(
+  domain: string,
+  date: Date,
+  truncation: { exported: number; total: number | null } | null = null,
+): string {
   const day = date.toISOString().slice(0, 10);
-  return `${domain.replace(/^www\./, "")}-products-${day}.csv`;
+  const scope = truncation
+    ? `-first-${truncation.exported}${truncation.total === null ? "" : `-of-${truncation.total}`}`
+    : "";
+  return `${domain.replace(/^www\./, "")}-products${scope}-${day}.csv`;
 }

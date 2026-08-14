@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CatalogueDigest, ExportState } from "../../../lib/catalogue_types";
+  import { EXPORT_CEILING } from "../../../lib/export_limits";
   import Section from "./Section.svelte";
 
   let {
@@ -74,7 +75,7 @@
     // exists to remove: the count is the store's real total, so the export's
     // ceiling has to be stated beside it rather than left to be discovered in
     // the file.
-    : digest.capped ? `${n(digest.count)} products · exports the first 10,000`
+    : digest.capped ? `${n(digest.count)} products · exports the first ${n(EXPORT_CEILING)}`
     : `${n(digest.count)} products · Shopify import format`,
   );
 

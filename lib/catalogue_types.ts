@@ -94,6 +94,18 @@ export interface CollectionPages {
   alphabetical: string;
 }
 
+// What an export walk came back with, and whether it is the whole catalogue.
+//
+// `truncated` is evidence the walk holds and nobody else does: only it knows
+// whether it stopped because the store ran out of products or because it ran
+// out of pages. Inferring it panel-side from a round product count would call a
+// store with exactly 10,000 products truncated, and would stay silent on a walk
+// a failed page cut short.
+export interface ExportWalk {
+  products: CatalogueProduct[];
+  truncated: boolean;
+}
+
 // The export's state machine, shared by App and ProductSummary. Declared here
 // rather than exported from the component: a type exported from a Svelte
 // instance script is not importable.

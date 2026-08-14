@@ -116,8 +116,11 @@ describe("fetchStorefrontExport", () => {
     chromeWith([page(true, "c1"), page(false, "c2")]);
     const { fetchStorefrontExport } = await import("../lib/storefront_bridge");
     const out = await fetchStorefrontExport(() => {});
-    expect(out).toHaveLength(2);
-    expect(out?.[0]?.handle).toBe("a");
+    expect(out?.products).toHaveLength(2);
+    expect(out?.products[0]?.handle).toBe("a");
+    // The store said there was no next page, so this file IS the catalogue and
+    // must not be named as though something were missing from it.
+    expect(out?.truncated).toBe(false);
   });
 
   // MAX_PAGES = 40, the same 40 x 250 ceiling as the /products.json export.
@@ -130,8 +133,12 @@ describe("fetchStorefrontExport", () => {
     const executeScript = chromeWith(pages);
     const { fetchStorefrontExport } = await import("../lib/storefront_bridge");
     const out = await fetchStorefrontExport(() => {});
-    expect(out).toHaveLength(40);
-    expect(out?.[39]?.handle).toBe("p40");
+    expect(out?.products).toHaveLength(40);
+    expect(out?.products[39]?.handle).toBe("p40");
+    // The walk stopped on the cap while the store still had pages to give. That
+    // is the fact the filename needs, and inferring it panel-side from a round
+    // product count would be a guess where the walk holds an answer.
+    expect(out?.truncated).toBe(true);
     // 1 call to resolve versions' fetchConfig is separate from executeScript;
     // executeScript itself must be called exactly 40 times, never a 41st.
     expect(executeScript).toHaveBeenCalledTimes(40);
@@ -144,8 +151,12 @@ describe("fetchStorefrontExport", () => {
     chromeWith([page(true, "c1"), null]);
     const { fetchStorefrontExport } = await import("../lib/storefront_bridge");
     const out = await fetchStorefrontExport(() => {});
-    expect(out).toHaveLength(1);
-    expect(out?.[0]?.handle).toBe("a");
+    expect(out?.products).toHaveLength(1);
+    expect(out?.products[0]?.handle).toBe("a");
+    // Keeping the pages is right; presenting them as the whole catalogue is not.
+    // A read that died halfway produces exactly as partial a file as one the
+    // ceiling stopped, so it is disclosed the same way.
+    expect(out?.truncated).toBe(true);
   });
 
   it("returns null when the first page cannot be read", async () => {

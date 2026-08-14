@@ -5,6 +5,7 @@ import * as api from "../lib/api";
 import type { DetectResponse } from "../lib/api";
 import * as ident from "../lib/install_id";
 import { InjectionDeniedError } from "../lib/errors";
+import type { ExportWalk } from "../lib/catalogue_types";
 
 beforeEach(() => {
   vi.spyOn(ident, "getInstallId").mockResolvedValue("k1");
@@ -682,7 +683,8 @@ describe("App state machine", () => {
     vi.spyOn(api, "postDetect").mockResolvedValue({
       is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
     });
-    const storefrontExport = vi.fn(async () => ([{ handle: "a", title: "A", variants: [], images: [] }]));
+    const storefrontExport = vi.fn(async () =>
+      ({ products: [{ handle: "a", title: "A", variants: [], images: [] }], truncated: false }));
     render(App, {
       runner: async () => ({ signals: {}, url: "https://headless.example/" }),
       catalogue: async () => ({ available: false, reason: "not_public", count: 0, variants: null,
@@ -696,6 +698,111 @@ describe("App state machine", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Export/ })).toBeTruthy());
     await fireEvent.click(screen.getByRole("button", { name: /Export/ }));
     await waitFor(() => expect(storefrontExport).toHaveBeenCalled());
+  });
+
+  // Captures what the download was actually named, which is where a truncated
+  // export now discloses itself.
+  const captureDownload = () => {
+    const named: string[] = [];
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:x");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const realCreate = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tag: string, ...rest: unknown[]) =>
+      tag === "a"
+        ? ({ click: () => {}, set href(_v: string) {}, set download(v: string) { named.push(v); } } as unknown as HTMLAnchorElement)
+        : (realCreate as (t: string, ...r: unknown[]) => HTMLElement)(tag, ...rest));
+    return named;
+  };
+
+  const headless = (
+    count: number,
+    storefrontExport: (onProgress: (done: number) => void) => Promise<ExportWalk | null>,
+  ) => ({
+    runner: async () => ({ signals: {}, url: "https://headless.example/" }),
+    catalogue: async () => ({ available: false, reason: "not_public" as const, count: 0, variants: null,
+      priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+    storefrontCatalogue: async () => ({ available: true, reason: null, count, capped: true, variants: null,
+      priceMin: 1, priceMax: 9, newest: null, currency: "USD", index: [] }),
+    storefrontExport,
+    watch: () => ({ stop: () => {} }),
+    delays: [0],
+  });
+
+  // The bug this pair exists for: the export reached its 10,000-product ceiling
+  // and the panel still counted it against 41,762, so the bar crawled to a
+  // quarter full and then announced success. A denominator the walk cannot
+  // reach is not a denominator.
+  it("counts export progress against what the export can reach, not the store's size", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const storefrontExport = vi.fn(async (onProgress: (done: number) => void) => {
+      onProgress(250);
+      await gate;
+      return { products: [{ handle: "a", title: "A", variants: [], images: [] }], truncated: true };
+    });
+    render(App, headless(41762, storefrontExport));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /Export/ })).toBeTruthy());
+    await fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+
+    expect(await screen.findByText("250 / 10,000")).toBeTruthy();
+    release();
+  });
+
+  it("names a truncated export for what it holds and what the store has", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const named = captureDownload();
+    const storefrontExport = vi.fn(async () =>
+      ({ products: [{ handle: "a", title: "A", variants: [], images: [] }], truncated: true }));
+    render(App, headless(41762, storefrontExport));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /Export/ })).toBeTruthy());
+    await fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+
+    await waitFor(() => expect(named).toHaveLength(1));
+    expect(named[0]).toMatch(/^headless\.example-products-first-1-of-41762-\d{4}-\d{2}-\d{2}\.csv$/);
+    vi.restoreAllMocks();
+  });
+
+  // The /products.json walk hits the same ceiling and has to say so the same
+  // way -- the two paths differ in how they read a store, never in how honest
+  // the file they produce is.
+  it("names a truncated /products.json export the same way", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    const named = captureDownload();
+    // Every page comes back full, so the walk runs out of pages rather than
+    // products -- 40 x 250 = 10,000 exported against a store of 12,000.
+    const full = Array.from({ length: 250 }, (_, i) => ({ handle: `h${i}`, variants: [], images: [] }));
+    const cataloguePage = vi.fn(async () => full);
+    render(App, {
+      runner: fakeRunner,
+      autostart: true,
+      delays: [0],
+      catalogue: async () => ({ available: true, reason: null, count: 12000, capped: true, variants: 1,
+        priceMin: 1, priceMax: 9, newest: null, currency: "USD", index: [] }),
+      // The cap-buster runs on a capped digest; an unreadable sitemap leaves the
+      // count this test set, which is the figure the name has to carry.
+      storefrontCatalogue: async () => ({ available: false, reason: "unreadable" as const, count: null,
+        variants: null, priceMin: null, priceMax: null, newest: null, currency: null, index: [] }),
+      storefrontBestSellers: async () => [],
+      cataloguePage,
+      watch: () => ({ stop: () => {} }),
+    });
+    await screen.findByText("Products");
+
+    await fireEvent.click(await screen.findByRole("button", { name: "Export catalogue CSV" }));
+
+    await waitFor(() => expect(named).toHaveLength(1));
+    expect(named[0]).toMatch(/^demo\.example-products-first-10000-of-12000-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(cataloguePage).toHaveBeenCalledTimes(40);
+    vi.restoreAllMocks();
   });
 
   // .sp-panel is the design's shell: it carries the container query the wide

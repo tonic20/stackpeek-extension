@@ -1,6 +1,7 @@
 // The three Storefront API documents. Kept apart from lib/storefront.ts so they
 // can be asserted without a network, and so the measurements behind their shape
 // live next to them.
+import { EXPORT_PAGE_SIZE } from "./export_limits";
 
 // Everything the digest needs except the count, in one document: the cheapest
 // and priciest product (sortKey PRICE, both directions) and the newest. Each
@@ -31,10 +32,10 @@ export const BEST_SELLERS_QUERY = (limit: number): string => `{
 // and 10 only drops the cost to 364 while risking truncated variants, so there is
 // no reason to ask for less.
 //
-// Exported because storefront_bridge derives the export's product ceiling from
-// it (pages x page size). One number, in one place -- a second literal is how a
-// ceiling and the sentence disclosing it drift apart.
-export const EXPORT_PAGE_SIZE = 250;
+// The size itself lives in export_limits, beside the page count it multiplies
+// into the export's ceiling; re-exported here because this document is what
+// interpolates it, and its tests read it from here.
+export { EXPORT_PAGE_SIZE };
 
 export const EXPORT_PAGE_QUERY = (cursor: string | null): string => `{
   products(first: ${EXPORT_PAGE_SIZE}${cursor ? `, after: "${cursor}"` : ""}) {
