@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import AppList from "../entrypoints/sidepanel/components/AppList.svelte";
 
@@ -9,6 +9,11 @@ const app = (over: Record<string, unknown> = {}) => ({
   app_store_url: "https://apps.shopify.com/judgeme",
   verified: true,
   ...over,
+});
+
+afterEach(() => {
+  // @ts-expect-error `chrome` only exists inside the extension.
+  delete globalThis.chrome;
 });
 
 describe("AppList", () => {
@@ -70,6 +75,18 @@ describe("AppList", () => {
     const link = screen.getByRole("link", { name: "Judge.me" });
     expect(link.getAttribute("href")).toBe("https://apps.shopify.com/judgeme");
     expect(link.getAttribute("rel")).toBe("noreferrer");
+  });
+
+  // Same as ThemeCard: the panel opens its own outbound links so it knows
+  // which tab not to rescan (lib/held_tabs.ts).
+  it("opens an app listing itself, so the panel can hold its results", () => {
+    const create = vi.fn(async () => ({ id: 42 }));
+    globalThis.chrome = { tabs: { create } } as unknown as typeof chrome;
+    render(AppList, { apps: [app()] });
+
+    screen.getByRole("link", { name: "Judge.me" }).click();
+
+    expect(create).toHaveBeenCalledWith({ url: "https://apps.shopify.com/judgeme", active: true });
   });
 
   it("does not link an app the catalogue has no listing url for", () => {

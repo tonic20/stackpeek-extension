@@ -26,6 +26,10 @@ panel:
   scanning: Scanning…
   rescan: Rescan this page
   privacy: Privacy
+  # Shown when the user follows one of the panel's own theme/app links. $1 is
+  # the store the results below describe, which is NOT the tab in front of
+  # them -- naming it is the whole point of the line.
+  held: Still showing $1 — the listing you opened is not scanned.
 
 theme:
   heading: Theme

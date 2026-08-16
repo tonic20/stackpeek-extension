@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import ThemeCard from "../entrypoints/sidepanel/components/ThemeCard.svelte";
+
+afterEach(() => {
+  // @ts-expect-error `chrome` only exists inside the extension.
+  delete globalThis.chrome;
+});
 
 describe("ThemeCard", () => {
   it("renders a catalog theme with its price and origin chip", () => {
@@ -24,6 +29,21 @@ describe("ThemeCard", () => {
     const link = screen.getByRole("link", { name: "Dawn" });
     expect(link.getAttribute("href")).toBe("https://themes.shopify.com/themes/dawn");
     expect(link.classList.contains("sp-theme__name")).toBe(true);
+  });
+
+  // Opened through the extension API rather than by the anchor, so the panel
+  // knows the tab's id and can stop itself rescanning a page the user never
+  // asked it to look at (lib/held_tabs.ts).
+  it("opens a theme listing itself, so the panel can hold its results", () => {
+    const create = vi.fn(async () => ({ id: 42 }));
+    globalThis.chrome = { tabs: { create } } as unknown as typeof chrome;
+    render(ThemeCard, {
+      theme: { name: "Dawn", origin: "catalog", theme_url: "https://themes.shopify.com/themes/dawn" },
+    });
+
+    screen.getByRole("link", { name: "Dawn" }).click();
+
+    expect(create).toHaveBeenCalledWith({ url: "https://themes.shopify.com/themes/dawn", active: true });
   });
 
   // An uncatalogued theme has no listing. It must render as text rather than as

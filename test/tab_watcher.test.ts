@@ -98,6 +98,83 @@ describe("watchActiveTab", () => {
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
+  // The panel opened this tab for the user, off one of its own theme/app
+  // links. Rescanning it would replace a store the user asked for with a
+  // permission error about a page they did not.
+  it("does not rescan a tab the panel opened itself", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange, { claim: (id) => id === 9 });
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("tells the caller when it is holding, and when it stops", async () => {
+    const onHold = vi.fn();
+    watchActiveTab(vi.fn(), { claim: (id) => id === 9, onHold });
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    expect(onHold).toHaveBeenLastCalledWith(true);
+
+    activated.forEach((fn) => fn({ tabId: 7 }));
+    expect(onHold).toHaveBeenLastCalledWith(false);
+  });
+
+  // Coming back to the scanned tab is not a change of page, so the result on
+  // screen still stands and rescanning it would be waste.
+  it("does not rescan when the user returns to the tab it scanned", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange, { claim: (id) => id === 9 });
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    activated.forEach((fn) => fn({ tabId: 7 }));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  // A scan reads whichever tab is active, so acting on the scanned tab
+  // finishing a background reload would scan the held tab instead -- the exact
+  // permission error the hold exists to prevent.
+  it("ignores a background reload of the scanned tab while holding", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange, { claim: (id) => id === 9 });
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    updated.forEach((fn) => fn(7, { status: "complete" }));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("watches the scanned tab again once the user is back on it", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange, { claim: (id) => id === 9 });
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    activated.forEach((fn) => fn({ tabId: 7 }));
+    updated.forEach((fn) => fn(7, { status: "complete" }));
+
+    expect(onChange).toHaveBeenCalledOnce();
+  });
+
+  // Holding is for the tabs the panel opened. Anywhere else the user goes is
+  // an ordinary page change and gets an ordinary rescan.
+  it("still follows the user to a tab it did not open", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange, { claim: (id) => id === 9 });
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    activated.forEach((fn) => fn({ tabId: 12 }));
+
+    expect(onChange).toHaveBeenCalledOnce();
+  });
+
   it("stops listening when stopped", async () => {
     const onChange = vi.fn();
     const watcher = watchActiveTab(onChange);

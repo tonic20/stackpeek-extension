@@ -42,7 +42,10 @@
     runner?: () => Promise<{ signals: unknown; url: string | undefined }>;
     autostart?: boolean;
     delays?: number[];
-    watch?: (onChange: () => void) => { stop: () => void };
+    watch?: (
+      onChange: () => void,
+      opts?: { onHold?: (holding: boolean) => void },
+    ) => { stop: () => void };
     catalogue?: () => Promise<CatalogueDigest>;
     storefrontCatalogue?: () => Promise<CatalogueDigest>;
     storefrontBestSellers?: (limit: number) => Promise<CatalogueEntry[]>;
@@ -56,6 +59,11 @@
   let refining = $state(false);
 
   let domain = $state("");
+
+  // The tab in front of the user is one the panel opened for them, off a theme
+  // or app link, so the results below describe a store they have deliberately
+  // stepped away from rather than a page they have left behind (lib/held_tabs.ts).
+  let held = $state(false);
 
   // null while being read; a settled digest may still report available: false.
   let digest: CatalogueDigest | null = $state(null);
@@ -111,7 +119,7 @@
         send: postDetect,
         installId: install_id,
         delays,
-        onNoSignals: () => { status = "cant_scan"; },
+        onNoSignals: () => { status = "cant_scan"; domain = ""; },
         onUpdate: (result, url) => {
           data = result;
           domain = hostnameOf(url);
@@ -126,6 +134,13 @@
       if (e instanceof InjectionDeniedError) status = "needs_permission";
       else if (e instanceof RateLimitError) status = "rate_limited";
       else status = "error";
+      // The header names the store the body describes, and none of these
+      // states describes a store. Leaving the last one there puts "Open
+      // Stackpeek on this store" directly beneath somebody else's domain,
+      // which reads as that store having refused us. not_shopify keeps its
+      // domain, because it is set from a result and TerminalState reads it to
+      // recognise our own site.
+      domain = "";
     } finally {
       refining = false;
       if (pendingRescan) {
@@ -297,7 +312,7 @@
   }
 
   $effect(() => {
-    const watcher = watch(handleTabChange);
+    const watcher = watch(handleTabChange, { onHold: (holding) => { held = holding; } });
     return () => watcher.stop();
   });
 
@@ -338,6 +353,13 @@
     {#if status === "loading"}
       <Skeleton />
     {:else if status === "result"}
+      <!--
+        Only beside a result: "still showing spotonfence.com" under a
+        permission error would be describing something that is not there.
+      -->
+      {#if held}
+        <p class="sp-held" role="status">{i18n.t("panel.held", [domain])}</p>
+      {/if}
       <ThemeCard theme={data.theme} />
       <AppList apps={data.apps} />
       <Trackers items={data.pixels} unknownDomainCount={data.unknown_domain_count} />

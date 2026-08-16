@@ -92,6 +92,24 @@ describe("every sp- class the panel emits is defined in panel.css", () => {
     spClassesIn(result.container).forEach((c) => emitted.add(c));
     result.unmount();
 
+    // Held: the same result, with the notice that the tab in front of the user
+    // is a listing the panel opened rather than the store below.
+    let hold!: (holding: boolean) => void;
+    const held = render(App, {
+      props: {
+        runner: fakeRunner, autostart: true, delays: [0],
+        watch: (_c: () => void, opts?: { onHold?: (h: boolean) => void }) => {
+          hold = opts!.onHold!;
+          return { stop: () => {} };
+        },
+      },
+    });
+    await vi.waitFor(() => expect(held.container.querySelector(".sp-theme")).toBeTruthy());
+    hold(true);
+    await vi.waitFor(() => expect(held.container.querySelector("[role=status]")).toBeTruthy());
+    spClassesIn(held.container).forEach((c) => emitted.add(c));
+    held.unmount();
+
     // Loading: the skeleton, and the header's scan indicator.
     vi.spyOn(api, "postDetect").mockImplementation(() => new Promise<DetectResponse>(() => {}));
     const loading = render(App, { props: { runner: fakeRunner, autostart: true } });

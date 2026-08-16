@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from "./Section.svelte";
+  import { heldLinkClick } from "../../../lib/held_tabs";
   import { i18n } from "#i18n";
 
   type App = {
@@ -71,7 +72,7 @@
           {#each group.items as app (app.name)}
             <li class="sp-item">
               {#if app.app_store_url}
-                <a class="sp-item__name" href={app.app_store_url} target="_blank" rel="noreferrer">{app.name}</a>
+                <a class="sp-item__name" href={app.app_store_url} target="_blank" rel="noreferrer" onclick={heldLinkClick}>{app.name}</a>
               {:else}
                 <span class="sp-item__name">{app.name}</span>
               {/if}

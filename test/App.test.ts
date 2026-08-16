@@ -235,6 +235,31 @@ describe("App state machine", () => {
     expect(screen.queryByText(/Can't scan this page/)).toBeNull();
   });
 
+  // The header names the store the body describes, and a refused scan
+  // describes no store at all. Leaving the last one there puts "Open Stackpeek
+  // on this store" directly beneath somebody else's domain, which reads as
+  // that store having refused us.
+  it("stops naming the last store once a scan is refused", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    // Scans the store, then loses access -- which is what a rescan after the
+    // tab navigated somewhere unreadable actually looks like.
+    let scans = 0;
+    const runner = async () => {
+      if (scans++ > 0) throw new InjectionDeniedError("denied");
+      return fakeRunner();
+    };
+    render(App, { props: { runner, autostart: true, delays: [0] } });
+    await screen.findByText("demo.example");
+    const rescan = await screen.findByRole("button", { name: /rescan this page/i });
+
+    rescan.click();
+
+    expect(await screen.findByText("Open Stackpeek on this store.")).toBeTruthy();
+    expect(screen.queryByText("demo.example")).toBeNull();
+  });
+
   // Same reasoning as cant_scan: the header must not offer a control that
   // cannot succeed.
   it("hides the header's rescan button when access was refused", async () => {
@@ -313,6 +338,48 @@ describe("App state machine", () => {
 
     // Exactly one further scan, however many changes arrived.
     await vi.waitFor(() => expect(send.mock.calls.length).toBe(before + 2));
+  });
+
+  // Following one of the panel's own theme/app links used to replace the store
+  // the user had just read with a permission error about the listing page.
+  // The results stay; what changes is that the panel says out loud that the
+  // tab in front of the user is not the one they describe.
+  it("keeps the store on screen, and says so, while a listing tab is in front", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: { name: "Dawn", origin: "catalog" }, apps: [], pixels: [],
+      unknown_domain_count: 0,
+    });
+    let hold!: (holding: boolean) => void;
+    const watch = (_onChange: () => void, opts?: { onHold?: (h: boolean) => void }) => {
+      hold = opts!.onHold!;
+      return { stop: () => {} };
+    };
+    render(App, { props: { runner: fakeRunner, autostart: true, delays: [0], watch } });
+    await screen.findByText("demo.example");
+
+    hold(true);
+
+    expect(await screen.findByText(/still showing demo\.example/i)).toBeTruthy();
+    expect(screen.getByText("Dawn")).toBeTruthy();
+  });
+
+  it("drops the notice when the user goes back to the store tab", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    let hold!: (holding: boolean) => void;
+    const watch = (_onChange: () => void, opts?: { onHold?: (h: boolean) => void }) => {
+      hold = opts!.onHold!;
+      return { stop: () => {} };
+    };
+    render(App, { props: { runner: fakeRunner, autostart: true, delays: [0], watch } });
+    await screen.findByText("demo.example");
+
+    hold(true);
+    await screen.findByText(/still showing demo\.example/i);
+    hold(false);
+
+    await vi.waitFor(() => expect(screen.queryByText(/still showing/i)).toBeNull());
   });
 
   it("stops watching when the panel goes away", () => {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from "./Section.svelte";
+  import { heldLinkClick } from "../../../lib/held_tabs";
   import { i18n } from "#i18n";
 
   type Theme = {
@@ -39,7 +40,7 @@
     >
       <div class="sp-theme__top">
         {#if isDetected && theme.theme_url}
-          <a class="sp-theme__name" href={theme.theme_url} target="_blank" rel="noreferrer">{title}</a>
+          <a class="sp-theme__name" href={theme.theme_url} target="_blank" rel="noreferrer" onclick={heldLinkClick}>{title}</a>
         {:else}
           <span class="sp-theme__name">{title}</span>
         {/if}

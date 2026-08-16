@@ -249,6 +249,21 @@
 
 /* Sections */
 .sp-panel .sp-body { flex: 1; }
+/* The panel is showing a store the user stepped away from on purpose, by
+   opening a theme or app listing from one of our own links. It sits above the
+   first section and borrows that section's hairline, so it reads as a note
+   attached to the results rather than a section of its own -- it has no
+   heading and nothing to collapse. Inset rather than tinted: this is not a
+   warning, and colouring it as one would put the user back where they were,
+   afraid to leave the panel open. */
+.sp-panel .sp-held {
+  padding: var(--sp-space-2) var(--sp-space-3);
+  border-bottom: var(--sp-hairline) solid var(--sp-border);
+  background: var(--sp-bg-inset);
+  font-size: var(--sp-fs-xs);
+  color: var(--sp-text-muted);
+  text-wrap: pretty;
+}
 .sp-panel .sp-sec {
   border-bottom: var(--sp-hairline) solid var(--sp-border);
   padding: var(--sp-space-3);
