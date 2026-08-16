@@ -1,7 +1,11 @@
-<!-- Empty, and load-bearing: without a lang="ts" script block svelte-check
-     cannot type this module and reports the import in App.svelte as implicitly
-     any. This component takes no props and has no logic. -->
-<script lang="ts"></script>
+<!-- The script block was empty and load-bearing: without lang="ts",
+     svelte-check cannot type this module and reports the import in App.svelte
+     as implicitly any. It now also holds the i18n import -- the labels below
+     are the same five the real sections use, and they read the same keys, so a
+     renamed section cannot leave the skeleton promising the old name. -->
+<script lang="ts">
+  import { i18n } from "#i18n";
+</script>
 
 <!--
   The first round's placeholder. A skeleton is a promise about the next frame,
@@ -20,12 +24,12 @@
 -->
 <div aria-hidden="true">
   <section class="sp-sec">
-    <div class="sp-sec__hd"><span class="sp-label">Theme</span></div>
+    <div class="sp-sec__hd"><span class="sp-label">{i18n.t("theme.heading")}</span></div>
     <div class="sp-skel sp-skel--theme"></div>
   </section>
 
   <section class="sp-sec">
-    <div class="sp-sec__hd"><span class="sp-label">Apps</span></div>
+    <div class="sp-sec__hd"><span class="sp-label">{i18n.t("apps.heading")}</span></div>
     <div class="sp-skel-rows">
       <div class="sp-skel sp-skel--row" style="width:38%"></div>
       <div class="sp-skel sp-skel--row" style="width:72%"></div>
@@ -36,14 +40,14 @@
   </section>
 
   <section class="sp-sec">
-    <div class="sp-sec__hd"><span class="sp-label">Trackers</span></div>
+    <div class="sp-sec__hd"><span class="sp-label">{i18n.t("trackers.heading")}</span></div>
     <div class="sp-skel-rows">
       <div class="sp-skel sp-skel--row" style="width:54%"></div>
     </div>
   </section>
 
   <section class="sp-sec">
-    <div class="sp-sec__hd"><span class="sp-label">Infrastructure</span></div>
+    <div class="sp-sec__hd"><span class="sp-label">{i18n.t("infrastructure.heading")}</span></div>
     <div class="sp-skel-rows">
       <div class="sp-skel sp-skel--row" style="width:48%"></div>
       <div class="sp-skel sp-skel--row" style="width:36%"></div>
@@ -51,7 +55,7 @@
   </section>
 
   <section class="sp-sec">
-    <div class="sp-sec__hd"><span class="sp-label">Products</span></div>
+    <div class="sp-sec__hd"><span class="sp-label">{i18n.t("products.heading")}</span></div>
     <div class="sp-skel-rows">
       <div class="sp-skel sp-skel--row" style="width:42%"></div>
       <div class="sp-skel sp-skel--row" style="width:56%"></div>

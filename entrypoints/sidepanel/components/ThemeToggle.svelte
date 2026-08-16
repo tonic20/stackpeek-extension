@@ -1,5 +1,6 @@
 <script lang="ts">
   import { systemTheme, applyTheme, saveTheme, type ThemePreference } from "../../../lib/theme";
+  import { i18n } from "#i18n";
 
   // Read from the document rather than from storage. main.ts applies the stored
   // preference before mount (design D2), so by the time this renders the
@@ -21,8 +22,17 @@
 </script>
 
 <!-- aria-pressed is deliberately absent: it describes a control that is on or
-     off, and this one selects between two peers. The label carries the state. -->
-<button class="sp-iconbtn" type="button" aria-label="Switch to {next} theme" onclick={toggle}>
+     off, and this one selects between two peers. The label carries the state.
+
+     Two keys rather than one message with the theme name substituted in: the
+     name is a noun that several languages decline, and a translator handed
+     "Switch to $1 theme" cannot see which form to write (design D4). -->
+<button
+  class="sp-iconbtn"
+  type="button"
+  aria-label={next === "dark" ? i18n.t("themeToggle.toDark") : i18n.t("themeToggle.toLight")}
+  onclick={toggle}
+>
   {#if next === "dark"}
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
       <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7Z"></path>

@@ -4,7 +4,7 @@ import { defineConfig } from "wxt";
 // Manifest is generated from this file; the sidepanel entrypoint auto-registers
 // side_panel.default_path. Extension version comes from package.json (0.1.0).
 export default defineConfig({
-  modules: ["@wxt-dev/module-svelte"],
+  modules: ["@wxt-dev/module-svelte", "@wxt-dev/i18n/module"],
   // Manifest is a function of the build env so the localhost host permission
   // can be dropped from anything that isn't a development build. The Chrome
   // Web Store build must not ask for access to the user's own machine, and
@@ -15,12 +15,16 @@ export default defineConfig({
   // `wxt build`, defaults to "production".
   manifest: (env) => {
     return {
-      // Both strings are the Chrome Web Store listing title and summary, decided
-      // in docs/launch-research.md §7.1. They ship in the build, so changing
-      // either means another extension release, not a store-field edit.
-      name: "Shopify Theme Detector & Apps — Stackpeek",
-      description:
-        "Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.",
+      // Both strings are the Chrome Web Store listing title and summary,
+      // decided in docs/launch-research.md §7.1. They now live in
+      // locales/en.yml, but they still ship in the build -- __MSG_ placeholders
+      // are resolved from _locales/ at install time, not fetched -- so changing
+      // either still means another extension release, not a store-field edit.
+      // What the move buys is the Chrome dashboard's language dropdown, which
+      // offers only locales present as _locales/<code>/ in the upload.
+      default_locale: "en",
+      name: "__MSG_extName__",
+      description: "__MSG_extDescription__",
       permissions: ["activeTab", "scripting", "sidePanel", "storage"],
       host_permissions:
         env.mode === "development"
@@ -36,7 +40,7 @@ export default defineConfig({
         128: "icon-128.png",
       },
       action: {
-        default_title: "Detect this store's theme & apps",
+        default_title: "__MSG_actionTitle__",
         default_icon: {
           16: "icon-16.png",
           32: "icon-32.png",

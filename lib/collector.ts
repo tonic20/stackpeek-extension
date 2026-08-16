@@ -90,10 +90,34 @@ export async function collectSignals(
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
 
+  // A <link> only names a fetch when its rel says so -- stylesheet, preload,
+  // prefetch, preconnect, dns-prefetch, modulepreload, icon, manifest all
+  // describe something the browser retrieves. A <link> with no rel at all
+  // describes a value instead, most commonly microdata:
+  //
+  //   <link itemprop="availability" href="http://schema.org/InStock">
+  //
+  // That is never fetched -- it is the value of the `availability` property,
+  // written with <link href> because the microdata spec says a non-visible
+  // property value goes there. Found in production 2026-08-16: schema.org
+  // was the 10th largest unattributed host in the corpus, on 148 stores,
+  // entirely from this shape. isNavigationLink (below) can't catch it: it
+  // tokenises rel to ask "which rel values are navigation," and that
+  // question presupposes a rel existing in the first place.
+  //
+  // Checked against the live App url_patterns in production before adding
+  // this, the same way NAVIGATION_LINK_RELS was checked: no pattern names a
+  // vocabulary host (schema.org, purl.org, ogp.me, w3.org) or anything else
+  // that could only ever arrive as a rel-less <link href>. Every real
+  // fingerprint ships as a script or a stylesheet, and both carry a rel.
+  // Check the database, not backend/db/fingerprints.json -- that file is
+  // stale and is no longer the fingerprint set anything runs on.
   const urls = new Set<string>();
   document.querySelectorAll("script[src]").forEach((s) => addUrl(urls, (s as HTMLScriptElement).src));
   document.querySelectorAll("link[href]").forEach((l) => {
-    if (isNavigationLink(l.getAttribute("rel"))) return;
+    const relAttr = l.getAttribute("rel");
+    if (!relAttr || !relAttr.trim()) return;
+    if (isNavigationLink(relAttr)) return;
     addUrl(urls, (l as HTMLLinkElement).href);
   });
 
@@ -103,8 +127,43 @@ export async function collectSignals(
     .map((m) => m.getAttribute("name"))
     .filter((n): n is string => !!n && n.startsWith("shopify-"));
 
+  // Only the four theme fields anything downstream reads, never the raw
+  // Shopify.theme object.
+  //
+  // Measured on 8and9.com: that object carries a `sections` tree containing a
+  // circular reference (`player` -> `parent` -> back). The payload is
+  // JSON.stringify'd before it goes anywhere -- lib/api.ts does it to build
+  // the request body, the crawler does it to write an archive line -- and
+  // JSON.stringify THROWS on a cycle. So the raw object turned one storefront
+  // into a hard failure of the whole detection, on both paths. Neither
+  // chrome.scripting.executeScript nor page.evaluate catches it first: both
+  // use structured clone, which handles cycles perfectly well and hands the
+  // cyclic object straight through.
+  //
+  // DetectionService reads exactly theme_store_id, schema_name,
+  // schema_version and name (see theme_result). Nothing has ever read
+  // `sections`, `handle`, `style`, `id` or `role`, and `sections` alone can be
+  // tens of kilobytes on a large theme. Naming the four fields fixes the
+  // crash, bounds the payload, and costs nothing that was being used.
+  //
+  // Written out longhand rather than looped over a field list: this function
+  // is serialised into the page by both callers and can reference no module
+  // scope, so a shared constant here would be a ReferenceError at runtime.
   const S = (window as any).Shopify;
-  const shopify = S ? { shop: S.shop || null, theme: S.theme || null } : null;
+  const t = S && S.theme;
+  const shopify = S
+    ? {
+        shop: S.shop || null,
+        theme: t
+          ? {
+              theme_store_id: t.theme_store_id ?? null,
+              name: t.name ?? null,
+              schema_name: t.schema_name ?? null,
+              schema_version: t.schema_version ?? null,
+            }
+          : null,
+      }
+    : null;
 
   return { shopify, script_urls: [...urls], window_globals, meta_tags };
 }

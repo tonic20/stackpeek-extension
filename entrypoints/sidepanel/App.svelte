@@ -23,6 +23,7 @@
   import Skeleton from "./components/Skeleton.svelte";
   import TerminalState from "./components/TerminalState.svelte";
   import ThemeToggle from "./components/ThemeToggle.svelte";
+  import { i18n } from "#i18n";
 
   // runner returns { signals, url }; injected in tests, defaults to the real collector bridge (Task 7)
   // delays overrides the round schedule; only used by tests to avoid waiting out ROUND_DELAYS_MS.
@@ -322,12 +323,12 @@
         disabled={refining} for the same reason, more strongly.
       -->
       <span class="sp-scan" role="status" aria-live="polite">
-        <span class="sp-spinner" aria-hidden="true"></span>Scanning…
+        <span class="sp-spinner" aria-hidden="true"></span>{i18n.t("panel.scanning")}
       </span>
     {:else if status !== "cant_scan" && status !== "needs_permission"}
       <!-- No rescan on an unscannable page: nothing about it will change by
            asking again, which is why the state offers no action either. -->
-      <button class="sp-iconbtn" type="button" aria-label="Rescan this page" onclick={() => runDetection()}>
+      <button class="sp-iconbtn" type="button" aria-label={i18n.t("panel.rescan")} onclick={() => runDetection()}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"></path><path d="M13.5 2v3.2h-3.2"></path></svg>
       </button>
     {/if}
@@ -360,7 +361,7 @@
   </div>
 
   <footer class="sp-ft">
-    <a href="https://stackpeek.app/privacy" target="_blank" rel="noreferrer">Privacy</a>
+    <a href="https://stackpeek.app/privacy" target="_blank" rel="noreferrer">{i18n.t("panel.privacy")}</a>
     <ThemeToggle />
     <!-- Empty outside the extension (tests, the preview board), where there is
          no manifest to read. A bare "v" would look like a bug. -->

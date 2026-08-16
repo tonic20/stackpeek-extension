@@ -27,6 +27,18 @@ export function downloadText(filename: string, text: string, mime = "text/csv;ch
 //
 // total is null when the store's size was never read: the file still says it is
 // partial, because the walk knows that much on its own.
+//
+// Deliberately NOT in locales/en.yml, even though ProductSummary displays this
+// name after an export and it is therefore user-visible English. Two reasons,
+// recorded here because the next person extracting a locale file will find this
+// string and otherwise have to guess whether skipping it was an oversight:
+// the filename is a durable artifact the merchant keeps and may later hand to
+// Shopify's importer or to a colleague, so it should read the same everywhere
+// rather than varying by whoever exported it; and a translated name drags
+// non-ASCII into a download filename, which is its own class of problem across
+// filesystems. `products` and `first`/`of` here are closer to `CSV_HEADER` in
+// lib/csv.ts -- a format -- than to copy. Revisit only with a reason, not for
+// consistency.
 export function catalogueFilename(
   domain: string,
   date: Date,

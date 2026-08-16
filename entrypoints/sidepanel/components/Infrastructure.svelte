@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from "./Section.svelte";
+  import { i18n } from "#i18n";
 
   // The design bundle never mentions Infrastructure -- no component, no mockup
   // -- but it ships: /api/v1/detect returns it as its own array and the admin
@@ -14,7 +15,7 @@
 </script>
 
 {#if items.length}
-  <Section id="infrastructure" heading="Infrastructure" count={items.length}>
+  <Section id="infrastructure" heading={i18n.t("infrastructure.heading")} count={items.length}>
     <ul class="sp-badges">
       {#each items as item (item.name)}
         <li class="sp-badge">{item.name}</li>

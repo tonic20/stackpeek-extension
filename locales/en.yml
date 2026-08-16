@@ -1,0 +1,134 @@
+# The single locale we ship. Nothing here is translated yet; the point of the
+# file is that the second locale is a copy of it rather than a refactor
+# (docs/superpowers/specs/2026-08-12-extension-i18n-scaffolding-design.md).
+#
+# Nested keys flatten to underscore-joined Chrome message names at build time
+# (`trackers.heading` -> `trackers_heading`), and plurals MUST use the object
+# form below -- a "one | other" string parses as an ordinary message with no
+# plural forms at all.
+
+# Formats numbers, currency and relative dates (design D5). Bound to the
+# message file rather than read from browser.i18n.getUILanguage(): Chrome falls
+# back to the default locale whenever it lacks the user's, and a French user
+# reading English text formatted with French separators is worse than either
+# alone. One key per locale is the whole cost.
+formatLocale: en-US
+
+# The Chrome Web Store listing title and summary, decided in
+# docs/launch-research.md §7.1. They ship in the package, so changing either
+# still means an extension release rather than a store-field edit. Length
+# limits are enforced by test/locales.test.ts.
+extName: Shopify Theme Detector & Apps — Stackpeek
+extDescription: Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.
+actionTitle: Detect this store's theme & apps
+
+panel:
+  scanning: Scanning…
+  rescan: Rescan this page
+  privacy: Privacy
+
+theme:
+  heading: Theme
+  headless: Headless storefront
+  custom: Custom theme
+  unknown: Unknown theme
+  customized: customized
+  free: Free
+  storeTheme: store theme
+  forkedFrom: Forked from $1 and modified.
+  customNote: Built for this store — no catalog match.
+  headlessNote: Theme not detectable — the storefront is decoupled from Shopify's theme layer.
+
+apps:
+  heading: Apps
+  unverified: unverified
+  unverifiedTitle: Lower-confidence fingerprint match
+  unverifiedSr: — lower-confidence fingerprint match
+  unverifiedNote: unverified — matched on a weaker signal. Shown so you can judge it.
+
+trackers:
+  heading: Trackers
+  none: None detected on this page.
+  # Object form, not "one | other": the string form yields plural: false and
+  # loses the t(key, count) overload entirely.
+  unidentified:
+    1: $1 more tracker we're identifying
+    n: $1 more trackers we're identifying
+
+infrastructure:
+  heading: Infrastructure
+
+products:
+  heading: Products
+  priceRange: Price range
+  variants: Variants
+  newest: Newest
+  # Same-day is not a relative-time case -- Intl would render "0d ago" -- so it
+  # stays a message (design D5).
+  newestToday: today
+  reading: Reading the catalogue…
+  unreadable: Couldn't read the catalogue.
+  notPublic: Catalogue not public on this store.
+  retry: Retry
+  export: Export catalogue CSV
+  # Whole messages rather than JavaScript concatenation (design D4): a
+  # translator cannot reorder a string the code glued together.
+  #
+  # The en dash below, and the `·` in the two count lines, ARE in this file on
+  # purpose -- which looks like it contradicts lib/format.ts's rule that glyphs
+  # stay out of the catalogue. The rule is about the em dash `—` the panel
+  # renders for "no value": that is a UI convention with a meaning, and a
+  # translator changing it would change what the cell says. A range separator
+  # and a list separator are ordinary typography, and locales that punctuate
+  # ranges or lists differently should be free to say so. Glyphs that carry
+  # meaning stay in code; glyphs that are punctuation belong here.
+  range: $1 – $2
+  progress: $1 / $2
+  exported: $1 exported
+  importFormat: Shopify import format
+  countImportFormat: $1 products · Shopify import format
+  countExportsFirst: $1 products · exports the first $2
+
+bestSellers:
+  heading: Best sellers
+  showFewer: Show fewer
+  showMore: Show $1 more
+
+# Two keys rather than one with a substituted theme name: "Switch to $1 theme"
+# forces a translator to supply a noun that declines correctly in a slot they
+# cannot see (design D4).
+themeToggle:
+  toDark: Switch to dark theme
+  toLight: Switch to light theme
+
+terminal:
+  notShopify:
+    code: no match
+    title: Not a Shopify store.
+    body: Checked against the catalogue and no match. Nothing about the page was stored.
+    action: Scan again
+  cantScan:
+    code: unreadable page
+    title: Can't scan this page.
+    body: Browser pages, the Web Store and PDFs are closed to extensions. Open a storefront tab and try there.
+  error:
+    code: network
+    title: Couldn't reach the detector.
+    body: The page signals were read; the API didn't answer. Nothing was stored.
+    action: Retry
+  rateLimited:
+    # Quoted: an unquoted 429 parses as a number, which the message parser
+    # rejects outright.
+    code: "429"
+    title: Please slow down and try again.
+    body: Too many scans in a short window. The limit resets on its own.
+    action: Retry
+  needsPermission:
+    code: permission
+    title: Open Stackpeek on this store.
+    body: Click the Stackpeek icon in the toolbar to scan this page. Chrome grants access one store at a time, which is why the panel cannot do it for you.
+  ours:
+    code: it's us
+    title: You pointed the detector at the detector.
+    body: Not Shopify. Rails and Postgres on a DigitalOcean box — plus one analytics beacon, the only third-party script on the page. We don't exempt ourselves.
+    action: Scan again

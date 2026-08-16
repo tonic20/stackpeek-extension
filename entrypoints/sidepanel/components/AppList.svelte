@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from "./Section.svelte";
+  import { i18n } from "#i18n";
 
   type App = {
     name: string;
@@ -61,7 +62,7 @@
   const showFlags = $derived(apps.some((a) => a.verified) && apps.some((a) => !a.verified));
 </script>
 
-<Section id="apps" heading="Apps" count={apps.length}>
+<Section id="apps" heading={i18n.t("apps.heading")} count={apps.length}>
   <div class="sp-cats">
     {#each groups as group (group.category)}
       <div class="sp-cat" data-sp-cat={group.key}>
@@ -75,8 +76,8 @@
                 <span class="sp-item__name">{app.name}</span>
               {/if}
               {#if !app.verified && showFlags}
-                <span class="sp-flag" title="Lower-confidence fingerprint match">unverified</span>
-                <span class="sr">— lower-confidence fingerprint match</span>
+                <span class="sp-flag" title={i18n.t("apps.unverifiedTitle")}>{i18n.t("apps.unverified")}</span>
+                <span class="sr">{i18n.t("apps.unverifiedSr")}</span>
               {/if}
             </li>
           {/each}
@@ -86,7 +87,7 @@
   </div>
 
   {#if showFlags}
-    <p class="sp-foot-note">unverified — matched on a weaker signal. Shown so you can judge it.</p>
+    <p class="sp-foot-note">{i18n.t("apps.unverifiedNote")}</p>
   {/if}
 </Section>
 

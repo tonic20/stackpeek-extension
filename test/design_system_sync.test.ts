@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseMessagesText, generateChromeMessages } from "@wxt-dev/i18n/build";
 import config from "../wxt.config";
 
 // The design bundle is the source of truth for both applications. check.py
@@ -112,7 +113,41 @@ describe("manifest icons", () => {
 
   it("gives the toolbar action the same icon, keeping its existing title", () => {
     expect(manifest.action?.default_icon).toEqual(EXPECTED_ICONS);
-    expect(manifest.action?.default_title).toBe("Detect this store's theme & apps");
+    // The title moved into locales/en.yml (design D2), so the manifest carries
+    // a placeholder and the guard follows the string. Both halves are needed: a
+    // manifest naming a message that does not exist renders an empty tooltip,
+    // and a locale file whose value drifted would sail past a placeholder-only
+    // check.
+    expect(manifest.action?.default_title).toBe("__MSG_actionTitle__");
+    expect(
+      generateChromeMessages(
+        parseMessagesText(
+          readFileSync(resolve(__dirname, "../locales/en.yml"), "utf8"),
+          "YAML",
+        ),
+      ).actionTitle?.message,
+    ).toBe("Detect this store's theme & apps");
+  });
+
+  // name and description carry the same __MSG_ + value split as the action
+  // title above, and for the same reason, but these two are new failure modes
+  // this branch introduced: before it, `name` was a literal that could not
+  // fail to resolve. A renamed extName in en.yml now ships a store listing
+  // titled "__MSG_extName__" with nothing here to catch it, and a dropped
+  // default_locale makes Chrome refuse to load the package outright -- both
+  // cost a release cycle, which is exactly what this guard is for.
+  it("points name and description at locale messages that resolve, and declares the default locale", () => {
+    expect(manifest.default_locale).toBe("en");
+    expect(manifest.name).toBe("__MSG_extName__");
+    expect(manifest.description).toBe("__MSG_extDescription__");
+
+    const messages = generateChromeMessages(
+      parseMessagesText(readFileSync(resolve(__dirname, "../locales/en.yml"), "utf8"), "YAML"),
+    );
+    expect(messages.extName?.message).toBe("Shopify Theme Detector & Apps — Stackpeek");
+    expect(messages.extDescription?.message).toBe(
+      "Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.",
+    );
   });
 });
 

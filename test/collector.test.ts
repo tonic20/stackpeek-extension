@@ -16,7 +16,10 @@ function setPage({
 }) {
   document.head.innerHTML = "";
   scripts.forEach((src) => { const s = document.createElement("script"); s.src = src; document.head.appendChild(s); });
-  links.forEach((href) => { const l = document.createElement("link"); l.href = href; document.head.appendChild(l); });
+  // rel=stylesheet: these cases are exercising URL handling (dedup, query
+  // stripping), not rel filtering, so the fixture needs a rel that collector.ts
+  // treats as a resource -- a rel-less <link> is now excluded (see collector.ts).
+  links.forEach((href) => { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = href; document.head.appendChild(l); });
   metas.forEach((name) => { const m = document.createElement("meta"); m.name = name; document.head.appendChild(m); });
   if (shopify === undefined) delete (window as any).Shopify; else (window as any).Shopify = shopify;
   Object.assign(window, globals);
@@ -41,6 +44,56 @@ describe("collectSignals", () => {
     setPage({ globals: { jdgm: {}, __PF__: {} } });
     const out = await collectSignals(["jdgm", "klaviyo", "__PF__"], 0);
     expect(out.window_globals.sort()).toEqual(["__PF__", "jdgm"]);
+  });
+
+  // 8and9.com's Shopify.theme carries a `sections` tree with a circular
+  // reference (player -> parent -> back). Neither chrome.scripting nor
+  // page.evaluate rejects it -- both structured-clone, which handles cycles --
+  // so the cyclic object reached JSON.stringify in lib/api.ts and threw,
+  // failing the whole detection for that store. It killed a corpus crawl 135
+  // domains in. Capturing named fields rather than the object is the fix; this
+  // pins it.
+  it("survives a circular reference inside Shopify.theme", async () => {
+    const sections: Record<string, unknown> = { player: {} };
+    (sections.player as Record<string, unknown>).parent = sections;
+
+    setPage({
+      shopify: {
+        shop: "cyclic.myshopify.com",
+        theme: {
+          name: "Impulse", theme_store_id: 857, schema_name: "Impulse",
+          schema_version: "7.2.0", sections,
+        },
+      } as never,
+    });
+    const out = await collectSignals([], 0);
+
+    // The payload is JSON.stringify'd on every path that consumes it, so this
+    // assertion is the one that matters: it must not throw.
+    expect(() => JSON.stringify(out)).not.toThrow();
+    expect((out.shopify as { theme: Record<string, unknown> }).theme).toEqual({
+      theme_store_id: 857, name: "Impulse",
+      schema_name: "Impulse", schema_version: "7.2.0",
+    });
+  });
+
+  // Everything DetectionService#theme_result reads, and nothing else. `sections`
+  // alone runs to tens of kilobytes on a large theme and has never been read.
+  it("captures only the four theme fields anything downstream reads", async () => {
+    setPage({
+      shopify: {
+        shop: "s.myshopify.com",
+        theme: {
+          name: "Dawn", theme_store_id: 887, schema_name: "Dawn",
+          schema_version: "15.0.0", id: 123, role: "main", handle: "dawn",
+          style: { id: 1 }, sections: { a: 1 },
+        },
+      } as never,
+    });
+    const out = await collectSignals([], 0);
+
+    expect(Object.keys((out.shopify as { theme: object }).theme).sort())
+      .toEqual(["name", "schema_name", "schema_version", "theme_store_id"]);
   });
 
   it("extracts window.Shopify shop + theme", async () => {
@@ -203,6 +256,46 @@ describe("collectSignals", () => {
       addLink("stylesheet", "http://localhost:3000/assets/theme.css?v=42");
       const out = await collectSignals([], 0);
       expect(out.script_urls).toContain("http://localhost:3000/assets/theme.css");
+    });
+  });
+
+  // A <link> with no rel is never a resource -- see the reasoning inline at
+  // collector.ts. addLink() above always sets a rel attribute, which is
+  // exactly why the schema.org bug went uncaught; these need a link with
+  // none at all.
+  describe("rel-less links are not resources", () => {
+    function addAttrLink(attrs: Record<string, string>, href: string) {
+      const l = document.createElement("link");
+      Object.entries(attrs).forEach(([name, value]) => l.setAttribute(name, value));
+      l.href = href;
+      document.head.appendChild(l);
+    }
+
+    it("does not collect a microdata itemprop link with no rel", async () => {
+      addAttrLink({ itemprop: "availability" }, "http://schema.org/InStock");
+      const out = await collectSignals([], 0);
+      expect(out.script_urls).not.toContain("http://schema.org/InStock");
+    });
+
+    it("does not collect a bare link[href] with no other attributes", async () => {
+      addAttrLink({}, "https://example.com/nothing");
+      const out = await collectSignals([], 0);
+      expect(out.script_urls).not.toContain("https://example.com/nothing");
+    });
+
+    it("still collects a rel=stylesheet link on a third-party host", async () => {
+      addAttrLink({ rel: "stylesheet" }, "https://cdn.example.com/vendor.css");
+      const out = await collectSignals([], 0);
+      expect(out.script_urls).toContain("https://cdn.example.com/vendor.css");
+    });
+
+    // preconnect hints are how v.shopify.com and cdn.shopifycloud.com were
+    // observed in production, and both are live fingerprints -- this rel
+    // must keep working.
+    it("still collects a rel=preconnect link", async () => {
+      addAttrLink({ rel: "preconnect" }, "https://cdn.example/");
+      const out = await collectSignals([], 0);
+      expect(out.script_urls).toContain("https://cdn.example/");
     });
   });
 });

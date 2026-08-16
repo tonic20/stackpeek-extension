@@ -2,6 +2,8 @@
   import type { CatalogueDigest, ExportState } from "../../../lib/catalogue_types";
   import { EXPORT_CEILING } from "../../../lib/export_limits";
   import Section from "./Section.svelte";
+  import { i18n } from "#i18n";
+  import { number as n, money, daysAgo } from "../../../lib/format";
 
   let {
     digest,
@@ -28,55 +30,40 @@
     onretryread: () => void;
   } = $props();
 
-  const n = (value: number) => value.toLocaleString("en-US");
-
-  // The feed carries no currency, so an unknown one renders bare numbers rather
-  // than a guessed symbol (design D8).
-  function money(value: number, currency: string | null): string {
-    if (!currency) return value.toFixed(2);
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
-    } catch {
-      return value.toFixed(2);
-    }
-  }
-
   const priceRange = $derived(
     !digest || digest.priceMin === null || digest.priceMax === null
       ? "—"
-      : `${money(digest.priceMin, digest.currency)} – ${money(digest.priceMax, digest.currency)}`,
+      : i18n.t("products.range", [
+          money(digest.priceMin, digest.currency),
+          money(digest.priceMax, digest.currency),
+        ]),
   );
 
-  function ago(iso: string | null): string {
-    if (!iso) return "—";
-    const days = Math.floor((Date.now() - Date.parse(iso)) / 86400_000);
-    if (!Number.isFinite(days)) return "—";
-    if (days <= 0) return "today";
-    return `${days}d ago`;
-  }
-
-  const READING = "Reading the catalogue…";
+  const READING = i18n.t("products.reading");
 
   const meta = $derived(
     state === "fetching" && progress
       // A total we never read is not a total. "250 / 250" while the walk is
       // still going would be a wrong answer dressed as a precise one.
-      ? (progress.total === null ? `${n(progress.done)} exported` : `${n(progress.done)} / ${n(progress.total)}`)
+      ? (progress.total === null
+          ? i18n.t("products.exported", [n(progress.done)])
+          : i18n.t("products.progress", [n(progress.done), n(progress.total)]))
     : state === "done" && filename ? filename
-    : state === "error" ? "Couldn't read the catalogue."
+    : state === "error" ? i18n.t("products.unreadable")
     : !digest ? READING
     // An unknown size renders no size. The catalogue is readable -- the export
     // below works -- but the Storefront path takes its count from the sitemap,
     // and a sitemap that 403s leaves us with nothing to say about how big the
     // store is. "0 products" here would be a false statement about the
     // merchant, not a missing one.
-    : digest.count === null ? "Shopify import format"
+    : digest.count === null ? i18n.t("products.importFormat")
     // A truncated export that says nothing is the silent failure this line
     // exists to remove: the count is the store's real total, so the export's
     // ceiling has to be stated beside it rather than left to be discovered in
     // the file.
-    : digest.capped ? `${n(digest.count)} products · exports the first ${n(EXPORT_CEILING)}`
-    : `${n(digest.count)} products · Shopify import format`,
+    : digest.capped
+      ? i18n.t("products.countExportsFirst", [n(digest.count), n(EXPORT_CEILING)])
+      : i18n.t("products.countImportFormat", [n(digest.count)]),
   );
 
   // The only indeterminate branch above. Every other state is a settled answer,
@@ -93,32 +80,32 @@
      pending one (design D12). Empty for the same reason when the catalogue is
      readable but its size is not: an unread count and a count of zero are
      different facts, and only one of them is ours to state. -->
-<Section id="products" heading="Products" count={digest?.available && digest.count !== null ? n(digest.count) : ""}>
+<Section id="products" heading={i18n.t("products.heading")} count={digest?.available && digest.count !== null ? n(digest.count) : ""}>
   {#if digest && !digest.available}
     {#if digest.reason === "unreadable"}
-      <p class="sp-quiet">Couldn't read the catalogue.</p>
-      <button class="sp-btn sp-btn--quiet" type="button" onclick={onretryread}>Retry</button>
+      <p class="sp-quiet">{i18n.t("products.unreadable")}</p>
+      <button class="sp-btn sp-btn--quiet" type="button" onclick={onretryread}>{i18n.t("products.retry")}</button>
     {:else}
-      <p class="sp-quiet">Catalogue not public on this store.</p>
+      <p class="sp-quiet">{i18n.t("products.notPublic")}</p>
     {/if}
   {:else}
     <div class="sp-facts">
       <div class="sp-fact">
-        <span class="sp-fact__k">Price range</span>
+        <span class="sp-fact__k">{i18n.t("products.priceRange")}</span>
         <span class="sp-fact__v">{priceRange}</span>
       </div>
       <div class="sp-fact">
-        <span class="sp-fact__k">Variants</span>
+        <span class="sp-fact__k">{i18n.t("products.variants")}</span>
         <span class="sp-fact__v">{digest && digest.variants !== null ? n(digest.variants) : "—"}</span>
       </div>
       <div class="sp-fact">
-        <span class="sp-fact__k">Newest</span>
-        <span class="sp-fact__v">{digest ? ago(digest.newest) : "—"}</span>
+        <span class="sp-fact__k">{i18n.t("products.newest")}</span>
+        <span class="sp-fact__v">{(digest ? daysAgo(digest.newest) : null) ?? "—"}</span>
       </div>
     </div>
 
     {#if state === "error"}
-      <button class="sp-btn sp-btn--quiet" type="button" onclick={onexport}>Retry</button>
+      <button class="sp-btn sp-btn--quiet" type="button" onclick={onexport}>{i18n.t("products.retry")}</button>
     {:else}
       <!-- Its own variant, never the accent: the accent stays reserved for the
            theme card (product-catalogue design D11). -->
@@ -130,7 +117,7 @@
         onclick={onexport}
       >
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.5 11.5 7M2.5 13h11"></path></svg>
-        Export catalogue CSV
+        {i18n.t("products.export")}
       </button>
     {/if}
 

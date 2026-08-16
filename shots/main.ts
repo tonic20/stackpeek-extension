@@ -6,6 +6,14 @@
 // (lib/api.ts:14) with WXT_API_BASE unset, so the panel in these screenshots
 // was filled by the real API reading the real fingerprint database. Stubbing it
 // would make the frames a drawing of the product rather than a photograph.
+//
+// This import MUST be first, before "svelte" and before App.svelte. It has no
+// exports of its own: it installs globalThis.browser as a side effect, and
+// that has to happen before App.svelte's import subtree pulls in #i18n and
+// @wxt-dev/browser, which captures globalThis.browser once and for good the
+// moment its own module body runs. installChromeShim() below runs from this
+// file's own body, which is too late for that -- see i18n_shim.ts for why.
+import "./i18n_shim";
 import { mount } from "svelte";
 import App from "../entrypoints/sidepanel/App.svelte";
 import "../entrypoints/sidepanel/panel.css";

@@ -1,5 +1,41 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { installChromeShim, harnessProps } from "../shots/main";
+
+// @wxt-dev/browser reads globalThis.browser exactly once, the moment its own
+// module body runs, and freezes the result -- so shots/i18n_shim.ts (which
+// installs globalThis.browser) has to be imported before ANY import that
+// transitively reaches #i18n, not merely before App.svelte specifically.
+// lib/format.ts is one such import (it calls i18n.t for formatLocale), and
+// nothing stops a future edit from adding `import { money } from
+// "../lib/format"` above the shim -- that would re-break the harness at
+// runtime while an App.svelte-relative check stayed green. ES modules
+// evaluate sibling imports in declaration order, so the shim being the
+// file's FIRST import is the actual ordering guarantee: everything else in
+// the file, whatever it imports, necessarily comes after.
+//
+// This cannot be turned into a behavioral test in this suite: test/setup.ts
+// is a setupFile, and Vitest runs setupFiles before a test file's own
+// imports are evaluated, so globalThis.browser is already correctly
+// installed before shots/main.ts's import chain ever runs here -- the exact
+// ordering guarantee this file has to provide for itself in a real browser
+// comes for free in Vitest, which is why the browser-runtime crash this
+// guarded against was invisible to `npm test` in the first place. Checking
+// the source order is what is left to catch a regression short of loading
+// the harness in an actual browser.
+it("keeps the i18n shim as the first import in main.ts", () => {
+  const source = readFileSync(resolve(__dirname, "../shots/main.ts"), "utf8");
+  const shimImport = source.indexOf('import "./i18n_shim"');
+  // Anchored to line start so this matches only actual import statements, not
+  // the word "import" inside the comment explaining why the shim must be
+  // first (e.g. "This import MUST be first...").
+  const firstImport = source.match(/^import /m)?.index;
+
+  expect(shimImport).toBeGreaterThan(-1);
+  expect(firstImport).toBeDefined();
+  expect(shimImport).toBe(firstImport);
+});
 
 describe("shots harness", () => {
   beforeEach(() => {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from "./Section.svelte";
+  import { i18n } from "#i18n";
 
   type Theme = {
     name?: string;
@@ -23,13 +24,14 @@
   // for it at all, so the label is the only thing there is to show.
   const title = $derived(
     theme?.origin === "headless"
-      ? "Headless storefront"
-      : theme?.name || (theme?.origin === "custom" ? "Custom theme" : "Unknown theme"),
+      ? i18n.t("theme.headless")
+      : theme?.name ||
+        (theme?.origin === "custom" ? i18n.t("theme.custom") : i18n.t("theme.unknown")),
   );
 </script>
 
 {#if theme}
-  <Section id="theme" heading="Theme" count={theme.origin}>
+  <Section id="theme" heading={i18n.t("theme.heading")} count={theme.origin}>
     <div
       class="sp-theme"
       class:sp-theme--plain={theme.origin === "custom"}
@@ -48,21 +50,21 @@
 
       {#if theme.origin === "forked"}
         <div class="sp-theme__meta">
-          <span class="sp-theme__mod">customized</span>
+          <span class="sp-theme__mod">{i18n.t("theme.customized")}</span>
           <span class="sp-sep" aria-hidden="true">·</span>
-          <span>{theme.price ?? "Free"}</span>
+          <span>{theme.price ?? i18n.t("theme.free")}</span>
         </div>
-        <span class="sr">Forked from {theme.name} and modified.</span>
+        <span class="sr">{i18n.t("theme.forkedFrom", [theme.name ?? ""])}</span>
       {:else if theme.origin === "catalog"}
         <div class="sp-theme__meta">
-          <span>{theme.price ?? "Free"}</span>
+          <span>{theme.price ?? i18n.t("theme.free")}</span>
           <span class="sp-sep" aria-hidden="true">·</span>
-          <span>store theme</span>
+          <span>{i18n.t("theme.storeTheme")}</span>
         </div>
       {:else if theme.origin === "custom"}
-        <p class="sp-theme__note">Built for this store — no catalog match.</p>
+        <p class="sp-theme__note">{i18n.t("theme.customNote")}</p>
       {:else}
-        <p class="sp-theme__note">Theme not detectable — the storefront is decoupled from Shopify's theme layer.</p>
+        <p class="sp-theme__note">{i18n.t("theme.headlessNote")}</p>
       {/if}
     </div>
   </Section>

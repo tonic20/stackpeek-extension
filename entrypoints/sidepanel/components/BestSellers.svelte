@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { CatalogueEntry } from "../../../lib/catalogue_types";
   import Section from "./Section.svelte";
+  import { i18n } from "#i18n";
+  import { money } from "../../../lib/format";
 
   let {
     products = [],
@@ -15,18 +17,14 @@
   let expanded = $state(false);
   const shown = $derived(expanded ? products : products.slice(0, COLLAPSED));
 
-  // Same rule as the Products section: no currency means no symbol, never a
-  // guessed one (design D8).
-  function money(price: string | null): string {
-    if (price === null) return "";
-    const value = Number.parseFloat(price);
+  // The entry's price arrives as a string from the feed. Parsing is this
+  // component's job; formatting is lib/format's, which is where the second copy
+  // of this Intl.NumberFormat call used to live.
+  function price(raw: string | null): string {
+    if (raw === null) return "";
+    const value = Number.parseFloat(raw);
     if (!Number.isFinite(value)) return "";
-    if (!currency) return value.toFixed(2);
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
-    } catch {
-      return value.toFixed(2);
-    }
+    return money(value, currency);
   }
 </script>
 
@@ -34,13 +32,13 @@
      returns [] when the sort was not honoured. Either way the section is absent
      rather than empty (design D3). -->
 {#if products.length >= 2}
-  <Section id="best-sellers" heading="Best sellers" count={products.length}>
+  <Section id="best-sellers" heading={i18n.t("bestSellers.heading")} count={products.length}>
     <ol class="sp-bs">
       {#each shown as product, i (product.handle)}
         <li>
           <span class="sp-rank">{i + 1}</span>
           <span class="sp-bs-name">{product.title}</span>
-          <span class="sp-price">{money(product.price)}</span>
+          <span class="sp-price">{price(product.price)}</span>
         </li>
       {/each}
     </ol>
@@ -51,7 +49,7 @@
         type="button"
         aria-expanded={expanded}
         onclick={() => (expanded = !expanded)}
-      >{expanded ? "Show fewer" : `Show ${products.length - COLLAPSED} more`}</button>
+      >{expanded ? i18n.t("bestSellers.showFewer") : i18n.t("bestSellers.showMore", [String(products.length - COLLAPSED)])}</button>
     {/if}
   </Section>
 {/if}

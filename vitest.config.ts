@@ -5,6 +5,15 @@ import { resolve } from "node:path";
 
 export default defineConfig({
   plugins: [svelte(), svelteTesting()],
+  // WXT registers this alias itself during a real build (addAlias in
+  // @wxt-dev/i18n/module), and .wxt/tsconfig.json carries it for svelte-check.
+  // Vite reads neither, so the test run needs it named here. It points at the
+  // real generated module, not a double: the plural splitting and substitution
+  // handling stay inside the library, and only browser.i18n.getMessage is
+  // stubbed (test/setup.ts).
+  resolve: {
+    alias: { "#i18n": resolve(import.meta.dirname, ".wxt/i18n/index.ts") },
+  },
   test: {
     // Vitest 4 defaults to pool: "forks" with isolate: true, so each test file
     // gets its own process and module registry. lib/sections.svelte.ts relies
@@ -15,7 +24,7 @@ export default defineConfig({
     // Section's tests will bleed into collapsible.test.ts and vice versa.
     environment: "jsdom",
     globals: true,
-    setupFiles: [resolve(__dirname, "test/setup.ts")],
+    setupFiles: [resolve(import.meta.dirname, "test/setup.ts")],
     include: ["test/**/*.test.ts"],
     passWithNoTests: true,
   },

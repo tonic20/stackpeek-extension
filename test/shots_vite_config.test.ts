@@ -21,4 +21,36 @@ describe("shots vite config", () => {
     expect(typeof config.publicDir).toBe("string");
     expect(existsSync(join(config.publicDir as string, "icon-32.png"))).toBe(true);
   });
+
+  // App.svelte imports strings from "#i18n". WXT registers that alias for the
+  // real extension build, and vitest.config.ts registers it separately for
+  // the test run, but this harness config is a plain Vite server that goes
+  // through neither -- without its own alias entry, Vite can't resolve the
+  // import at all and the harness fails to build before it ever reaches the
+  // SP_MESSAGES define below. Asserting the resolved target file actually
+  // exists on disk (rather than just grepping the config for "#i18n") catches
+  // a moved or renamed .wxt/i18n/index.ts too, not only a deleted alias line.
+  it("resolves the #i18n alias to the generated i18n module", () => {
+    const alias = (config.resolve?.alias as Record<string, string> | undefined)?.["#i18n"];
+    expect(typeof alias).toBe("string");
+    expect(existsSync(alias as string)).toBe(true);
+  });
+});
+
+describe("shots i18n", () => {
+  // shots/main.ts mounts the shipping App.svelte, and every section heading in
+  // it now comes from browser.i18n. Without this define the harness renders a
+  // crash rather than a panel -- and no other test mounts the harness, so this
+  // is the only thing standing between a silent break and a screenshot run.
+  it("injects the parsed messages into the harness bundle", () => {
+    const injected = (config.define as Record<string, string>)["import.meta.env.SP_MESSAGES"];
+    expect(typeof injected).toBe("string");
+    const messages = JSON.parse(injected as string) as Record<string, { message: string }>;
+    expect(messages.trackers_heading?.message).toBe("Trackers");
+    expect(messages.extName?.message).toBe("Shopify Theme Detector & Apps — Stackpeek");
+  });
+
+  it("keeps the API base define, which the panel's fetches depend on", () => {
+    expect((config.define as Record<string, string>)["import.meta.env.WXT_API_BASE"]).toBe('""');
+  });
 });
