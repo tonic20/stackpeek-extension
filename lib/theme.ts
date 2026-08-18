@@ -10,6 +10,8 @@
 // "light" value, so an ABSENT attribute means "follow the system" and an
 // explicit one overrides it. The whole feature is therefore setting or
 // removing one attribute.
+import { browser } from "wxt/browser";
+
 export type ThemePreference = "light" | "dark";
 
 const KEY = "theme";
@@ -32,7 +34,7 @@ export function systemTheme(): ThemePreference {
 // than reaching the DOM: this key shares storage with install_id and outlives
 // upgrades.
 export async function storedTheme(): Promise<ThemePreference | undefined> {
-  const result = await globalThis.chrome?.storage?.local?.get(KEY);
+  const result = await browser?.storage?.local?.get(KEY);
   const value = result?.[KEY];
   return value === "light" || value === "dark" ? value : undefined;
 }
@@ -58,5 +60,5 @@ export async function saveTheme(pref: ThemePreference): Promise<void> {
   } catch {
     // Storage denied. chrome.storage.local below still records the choice.
   }
-  await globalThis.chrome?.storage?.local?.set({ [KEY]: pref });
+  await browser?.storage?.local?.set({ [KEY]: pref });
 }

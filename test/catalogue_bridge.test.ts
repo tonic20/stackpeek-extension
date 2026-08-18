@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { fetchCatalogueDigest, fetchCataloguePage, fetchCollectionPages } from "../lib/catalogue_bridge";
+import { stubBrowser } from "./setup";
 
 beforeEach(() => {
-  globalThis.chrome = {
+  stubBrowser({
     tabs: { query: vi.fn(async () => [{ id: 7, url: "https://demo.example/" }]) },
     scripting: { executeScript: vi.fn(async () => [{ result: { available: true, count: 3 } }]) },
-  } as unknown as typeof chrome;
+  });
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("fetchCatalogueDigest", () => {

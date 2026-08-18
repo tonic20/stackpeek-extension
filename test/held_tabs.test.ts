@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { stubBrowser } from "./setup";
 
 // The module keeps a Set of tab ids for the life of the panel, which is right
 // for the panel and wrong for a test file. Re-importing per test is what gives
@@ -10,21 +11,20 @@ let resolveCreate: (tab: { id?: number }) => void;
 
 beforeEach(async () => {
   created = [];
-  globalThis.chrome = {
+  stubBrowser({
     tabs: {
       create: vi.fn((info: { url?: string }) => {
         created.push(info);
         return new Promise((r) => { resolveCreate = r; });
       }),
     },
-  } as unknown as typeof chrome;
+  });
   vi.resetModules();
   mod = await import("../lib/held_tabs");
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 // A left click on an <a href> inside the panel, with no modifier held.
@@ -68,8 +68,7 @@ describe("heldLinkClick", () => {
   // The site renders this same panel markup as a static demo, where there is
   // no extension API and the anchor must simply be an anchor.
   it("lets the anchor navigate where no extension APIs exist", () => {
-    // @ts-expect-error exercising the no-chrome path
-    delete globalThis.chrome;
+    stubBrowser({});
 
     const prevented = clickLink("https://apps.shopify.com/pagefly");
 

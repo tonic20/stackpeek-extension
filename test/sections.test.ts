@@ -1,24 +1,24 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadSections, isOpen, setOpen, SECTION_IDS } from "../lib/sections.svelte";
+import { stubBrowser } from "./setup";
 
 let store: Record<string, unknown>;
 
 beforeEach(async () => {
   store = {};
-  globalThis.chrome = {
+  stubBrowser({
     storage: { local: {
       get: vi.fn(async (k: string) => ({ [k]: store[k] })),
       set: vi.fn(async (obj: Record<string, unknown>) => { Object.assign(store, obj); }),
     } },
-  } as unknown as typeof chrome;
+  });
   // The record is module-level state, shared by every case in this file.
   // Loading from an empty store is what resets it between them.
   await loadSections();
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("loadSections", () => {
@@ -61,8 +61,7 @@ describe("loadSections", () => {
   });
 
   it("loads clean where no extension APIs exist", async () => {
-    // @ts-expect-error exercising the no-chrome path
-    delete globalThis.chrome;
+    stubBrowser({});
 
     await expect(loadSections()).resolves.toBeUndefined();
     expect(SECTION_IDS.every(isOpen)).toBe(true);
@@ -109,8 +108,7 @@ describe("setOpen", () => {
   });
 
   it("does not throw where no extension APIs exist", () => {
-    // @ts-expect-error exercising the no-chrome path
-    delete globalThis.chrome;
+    stubBrowser({});
 
     expect(() => setOpen("apps", false)).not.toThrow();
     expect(isOpen("apps")).toBe(false);

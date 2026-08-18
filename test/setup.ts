@@ -18,12 +18,27 @@ const MESSAGES = generateChromeMessages(
   parseMessagesText(readFileSync(resolve(__dirname, "../locales/en.yml"), "utf8"), "YAML"),
 );
 
-// Stubbed as `browser` with a runtime.id rather than as `chrome`, because
-// @wxt-dev/browser prefers `globalThis.browser?.runtime?.id ? globalThis.browser
-// : globalThis.chrome` and captures the winner once, at import. A dozen test
-// files assign and delete globalThis.chrome for their own reasons; routing i18n
-// through globalThis.browser keeps it out of their way entirely.
-(globalThis as Record<string, unknown>).browser = {
+// ONE object, reachable under both names.
+//
+// @wxt-dev/browser resolves `globalThis.browser?.runtime?.id ? globalThis.browser
+// : globalThis.chrome` ONCE, at import — so a test that reassigns either global
+// after that point is writing somewhere the captured binding will never read.
+// Making the two names the same object removes the question: `browser` from
+// wxt/browser, `globalThis.browser` and `globalThis.chrome` are three views of
+// this record, and stubBrowser edits it in place rather than replacing it.
+//
+// runtime.id must survive every stub, because it is what makes the alias pick
+// this object over an empty `chrome`. i18n must survive because the panel's
+// tests assert on real English copy.
+//
+// Kept as a snapshot, not just a set of protected key names: a test that
+// passes its own `runtime` (test/version.test.ts's manifest case) replaces
+// the whole key, and a PRESERVED list that only skips deletion would let that
+// replacement leak into every test after it, forever, since nothing would
+// ever put the original id/getMessage back. Rebuilding from DEFAULTS on every
+// call is what makes `stubBrowser({})` actually mean "back to nothing but the
+// two required keys" rather than "whatever the previous test last left here."
+const DEFAULTS: Record<string, unknown> = {
   runtime: { id: "vitest" },
   i18n: {
     // Chrome returns "" for a message it does not have, which is how a
@@ -37,6 +52,25 @@ const MESSAGES = generateChromeMessages(
     }),
   },
 };
+
+const EXTENSION_API: Record<string, unknown> = { ...DEFAULTS };
+
+(globalThis as Record<string, unknown>).browser = EXTENSION_API;
+(globalThis as Record<string, unknown>).chrome = EXTENSION_API;
+
+/**
+ * Replace the stubbed extension API surface in place.
+ *
+ * `stubBrowser({})` is the "no extension APIs available" case — the one tests
+ * used to write as `delete globalThis.chrome`, which no longer works now that
+ * the binding is captured. Production code guards these paths with optional
+ * chaining (`browser?.storage?.local?.get`), so an absent key is the same
+ * signal an absent global used to be.
+ */
+export function stubBrowser(api: object): void {
+  for (const key of Object.keys(EXTENSION_API)) delete EXTENSION_API[key];
+  Object.assign(EXTENSION_API, DEFAULTS, api);
+}
 
 afterEach(() => {
   cleanup();

@@ -6,6 +6,7 @@ import type { DetectResponse } from "../lib/api";
 import * as ident from "../lib/install_id";
 import { InjectionDeniedError } from "../lib/errors";
 import type { ExportWalk } from "../lib/catalogue_types";
+import { stubBrowser } from "./setup";
 
 beforeEach(() => {
   vi.spyOn(ident, "getInstallId").mockResolvedValue("k1");
@@ -281,11 +282,11 @@ describe("App state machine", () => {
   });
 
   it("footers the panel with the privacy link, the theme toggle and the manifest's version", async () => {
-    globalThis.chrome = {
+    stubBrowser({
       ...(globalThis.chrome ?? {}),
       runtime: { getManifest: () => ({ version: "4.5.6" }) },
       storage: { local: { get: async () => ({}), set: async () => {} } },
-    } as unknown as typeof chrome;
+    });
     const { container } = render(App, { props: { runner: fakeRunner, autostart: false } });
 
     const link = screen.getByRole("link", { name: "Privacy" });
@@ -293,8 +294,7 @@ describe("App state machine", () => {
     expect(screen.getByRole("button", { name: /switch to .* theme/i })).toBeTruthy();
     expect(container.querySelector(".sp-ft__v")!.textContent).toBe("v4.5.6");
 
-    // @ts-expect-error `chrome` only exists inside the extension.
-    delete globalThis.chrome;
+    stubBrowser({});
   });
 
   it("rescans when the tab moves on", async () => {

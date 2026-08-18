@@ -10,6 +10,7 @@
 // lib/window_globals_config.ts: there, an extra probe name is harmless and a
 // missing one loses a signal, so the bundled list is a floor. Here a retired
 // version is actively worthless, so the server must be able to drop one.
+import { browser } from "wxt/browser";
 import { fetchConfig } from "./api";
 
 export const BUNDLED_STOREFRONT_VERSIONS = ["2025-01", "2024-10"] as const;
@@ -34,14 +35,14 @@ function isFresh(value: unknown): value is CachedVersions {
 // Never throws: a catalogue read must degrade to the bundled list, never fail.
 export async function resolveStorefrontVersions(): Promise<string[]> {
   try {
-    const stored = await chrome.storage.local.get(STORAGE_KEY);
+    const stored = await browser.storage.local.get(STORAGE_KEY);
     if (isFresh(stored[STORAGE_KEY])) return (stored[STORAGE_KEY] as CachedVersions).versions;
 
     const config = await fetchConfig().catch(() => null);
     const fromServer = (config as { storefront_api_versions?: unknown } | null)?.storefront_api_versions;
     if (!isStringArray(fromServer)) return [...BUNDLED_STOREFRONT_VERSIONS];
 
-    await chrome.storage.local.set({ [STORAGE_KEY]: { versions: fromServer, fetchedAt: Date.now() } });
+    await browser.storage.local.set({ [STORAGE_KEY]: { versions: fromServer, fetchedAt: Date.now() } });
     return fromServer;
   } catch {
     return [...BUNDLED_STOREFRONT_VERSIONS];

@@ -3,6 +3,7 @@ import { render } from "@testing-library/svelte";
 import { createRawSnippet } from "svelte";
 import Section from "../entrypoints/sidepanel/components/Section.svelte";
 import { loadSections } from "../lib/sections.svelte";
+import { stubBrowser } from "./setup";
 
 const body = createRawSnippet(() => ({ render: () => `<p class="zz-body">body</p>` }));
 
@@ -15,18 +16,17 @@ let store: Record<string, unknown>;
 
 beforeEach(async () => {
   store = {};
-  globalThis.chrome = {
+  stubBrowser({
     storage: { local: {
       get: vi.fn(async (k: string) => ({ [k]: store[k] })),
       set: vi.fn(async (obj: Record<string, unknown>) => { Object.assign(store, obj); }),
     } },
-  } as unknown as typeof chrome;
+  });
   await loadSections();
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("Section", () => {

@@ -7,6 +7,7 @@ import * as api from "../lib/api";
 import type { DetectResponse } from "../lib/api";
 import * as ident from "../lib/install_id";
 import { InjectionDeniedError } from "../lib/errors";
+import { stubBrowser } from "./setup";
 
 // The panel names classes it does not define -- panel.css is byte-locked to the
 // design bundle, and every component test asserts by querying the class it just
@@ -56,12 +57,12 @@ const RESULT = {
 
 beforeEach(() => {
   vi.spyOn(ident, "getInstallId").mockResolvedValue("k1");
-  globalThis.chrome = {
+  stubBrowser({
     ...(globalThis.chrome ?? {}),
     runtime: { getManifest: () => ({ version: "0.0.0" }) },
     // The footer's theme toggle reads and writes its preference.
     storage: { local: { get: async () => ({}), set: async () => {} } },
-  } as unknown as typeof chrome;
+  });
 });
 
 describe("every sp- class the panel emits is defined in panel.css", () => {

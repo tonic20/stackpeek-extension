@@ -4,6 +4,16 @@
     <meta charset="utf-8" />
     <title>Stackpeek</title>
     <!--
+      Firefox-only in effect, without needing a browser branch: WXT's
+      addEntrypoints reassigns manifest.sidebar_action wholesale AFTER the
+      config's manifest object is merged (wxt/dist/core/utils/manifest.mjs),
+      reading default_icon from this entrypoint's own options -- the only
+      input that survives that reassignment. wxt.config.ts cannot set this;
+      see its browser_specific_settings comment. Chrome's side_panel has no
+      icon field, so this meta tag has nothing to do there.
+    -->
+    <meta name="manifest.default_icon" content='{"16":"icon-16.png","32":"icon-32.png","48":"icon-48.png","128":"icon-128.png"}' />
+    <!--
       Page-level shell only. panel.css is byte-locked to the design bundle and
       scopes itself to .sp-panel, so it can carry neither of these: the UA's
       default body margin (which leaves the panel in an 8px gutter against the

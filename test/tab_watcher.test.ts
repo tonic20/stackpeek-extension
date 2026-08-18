@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { watchActiveTab } from "../lib/tab_watcher";
+import { stubBrowser } from "./setup";
 
 type Listener = (...args: any[]) => void;
 let activated: Listener[];
@@ -8,7 +9,7 @@ let updated: Listener[];
 beforeEach(() => {
   activated = [];
   updated = [];
-  globalThis.chrome = {
+  stubBrowser({
     tabs: {
       query: vi.fn(async () => [{ id: 7, url: "https://demo.example/" }]),
       onActivated: {
@@ -20,12 +21,11 @@ beforeEach(() => {
         removeListener: (fn: Listener) => { updated = updated.filter((f) => f !== fn); },
       },
     },
-  } as unknown as typeof chrome;
+  });
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 // Lets the watcher's constructor-time tabs.query() settle before events fire.
@@ -190,8 +190,7 @@ describe("watchActiveTab", () => {
 
   // Every panel rendering test mounts App outside an extension.
   it("is inert where no extension APIs exist", () => {
-    // @ts-expect-error exercising the no-chrome path
-    delete globalThis.chrome;
+    stubBrowser({});
 
     expect(() => watchActiveTab(() => {}).stop()).not.toThrow();
   });

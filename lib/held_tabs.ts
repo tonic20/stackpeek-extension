@@ -16,6 +16,8 @@
 //
 // Deliberately no `tabs` permission: nothing here reads a URL. The panel knows
 // these tabs because it opened them, not because it can see where they went.
+import { browser } from "wxt/browser";
+
 const held = new Set<number>();
 
 // Set between the click and the moment the new tab's id is known. See
@@ -38,7 +40,7 @@ export function heldLinkClick(event: MouseEvent): void {
   // whatever the user did next.
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
-  const create = globalThis.chrome?.tabs?.create;
+  const create = browser?.tabs?.create;
   if (!create) return;
 
   const href = (event.currentTarget as HTMLAnchorElement | null)?.href;

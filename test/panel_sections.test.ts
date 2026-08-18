@@ -4,6 +4,7 @@ import App from "../entrypoints/sidepanel/App.svelte";
 import * as api from "../lib/api";
 import * as ident from "../lib/install_id";
 import { loadSections } from "../lib/sections.svelte";
+import { stubBrowser } from "./setup";
 
 // The panel's section ids are storage keys AND DOM ids, and every id must be
 // unique across the assembled panel -- a collision would weld two sections to
@@ -35,16 +36,15 @@ beforeEach(async () => {
     unknown_domain_count: 0,
   } as never);
   store = {};
-  globalThis.chrome = { storage: { local: {
+  stubBrowser({ storage: { local: {
     get: vi.fn(async (k: string) => ({ [k]: store[k] })),
     set: vi.fn(async (o: Record<string, unknown>) => { Object.assign(store, o); }),
-  } } } as unknown as typeof chrome;
+  } } });
   await loadSections();
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 const openMap = (c: HTMLElement) => Object.fromEntries(

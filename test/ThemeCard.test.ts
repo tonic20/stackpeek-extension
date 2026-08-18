@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import ThemeCard from "../entrypoints/sidepanel/components/ThemeCard.svelte";
+import { stubBrowser } from "./setup";
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("ThemeCard", () => {
@@ -36,7 +36,7 @@ describe("ThemeCard", () => {
   // asked it to look at (lib/held_tabs.ts).
   it("opens a theme listing itself, so the panel can hold its results", () => {
     const create = vi.fn(async () => ({ id: 42 }));
-    globalThis.chrome = { tabs: { create } } as unknown as typeof chrome;
+    stubBrowser({ tabs: { create } });
     render(ThemeCard, {
       theme: { name: "Dawn", origin: "catalog", theme_url: "https://themes.shopify.com/themes/dawn" },
     });

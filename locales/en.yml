@@ -130,7 +130,7 @@ terminal:
   needsPermission:
     code: permission
     title: Open Stackpeek on this store.
-    body: Click the Stackpeek icon in the toolbar to scan this page. Chrome grants access one store at a time, which is why the panel cannot do it for you.
+    body: Click the Stackpeek icon in the toolbar to scan this page. Your browser grants access one store at a time, which is why the panel cannot do it for you.
   ours:
     code: it's us
     title: You pointed the detector at the detector.

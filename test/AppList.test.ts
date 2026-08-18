@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import AppList from "../entrypoints/sidepanel/components/AppList.svelte";
+import { stubBrowser } from "./setup";
 
 const app = (over: Record<string, unknown> = {}) => ({
   name: "Judge.me",
@@ -12,8 +13,7 @@ const app = (over: Record<string, unknown> = {}) => ({
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("AppList", () => {
@@ -81,7 +81,7 @@ describe("AppList", () => {
   // which tab not to rescan (lib/held_tabs.ts).
   it("opens an app listing itself, so the panel can hold its results", () => {
     const create = vi.fn(async () => ({ id: 42 }));
-    globalThis.chrome = { tabs: { create } } as unknown as typeof chrome;
+    stubBrowser({ tabs: { create } });
     render(AppList, { apps: [app()] });
 
     screen.getByRole("link", { name: "Judge.me" }).click();

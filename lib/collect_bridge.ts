@@ -1,3 +1,4 @@
+import { browser } from "wxt/browser";
 import { collectSignals } from "./collector";
 import { resolveProbeList } from "./window_globals_config";
 import { InjectionDeniedError } from "./errors";
@@ -41,7 +42,7 @@ export async function collectFromActiveTab(): Promise<{
   signals: unknown;
   url: string | undefined;
 }> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   // No active tab means there is nothing to inject into. The catch below
   // already degrades to exactly this result -- previously by way of a
   // TypeError on tab.id -- so returning it up front only skips the probe-list
@@ -49,7 +50,7 @@ export async function collectFromActiveTab(): Promise<{
   if (tab?.id === undefined) return { signals: null, url: originOf(tab?.url) };
   try {
     const globals = await resolveProbeList();
-    const [injection] = await chrome.scripting.executeScript({
+    const [injection] = await browser.scripting.executeScript({
       target: { tabId: tab.id },
       world: "MAIN",
       // Without this, Chrome injects at document_idle, which waits for the
@@ -61,13 +62,26 @@ export async function collectFromActiveTab(): Promise<{
     });
     return { signals: injection?.result ?? null, url: originOf(tab.url) };
   } catch (e) {
-    // chrome.scripting reports both of these as a plain Error with no code, so
-    // the message is the only thing there is to classify on. Matching narrowly
-    // and defaulting to the old behaviour keeps a message change from turning
-    // restricted pages into permission prompts -- the failure would be a
-    // refusal shown as "Can't scan this page", which is exactly today's
-    // behaviour and no worse.
-    if (e instanceof Error && /must request permission|Cannot access contents of the page/i.test(e.message)) {
+    // Both engines report this as a plain Error with no code, so the message is
+    // the only thing there is to classify on. Matching narrowly and defaulting
+    // to the old behaviour keeps a message change from turning restricted pages
+    // into permission prompts -- the failure would be a refusal shown as "Can't
+    // scan this page", which is no worse than not classifying at all.
+    //
+    // The two engines word it differently and BOTH must be listed. Chrome says
+    // "Cannot access contents of the page ... must request permission";
+    // Firefox says "Missing host permission for the tab", or "Frame not found,
+    // or missing host permission" for a frame (bugzilla 1448129).
+    //
+    // Firefox is not an edge case here, it is the common path. Firefox revokes
+    // the activeTab grant on navigation, and this panel auto-rescans whenever
+    // the active tab changes (lib/tab_watcher.ts) -- a rescan with no user
+    // gesture behind it. So on Firefox every scan after a navigation lands
+    // here, and with only Chrome's wording listed it rendered "Can't scan this
+    // page" on storefronts that were one toolbar click from scanning
+    // (observed on Firefox 153, 2026-08-18). The needs_permission state and
+    // its copy already say the right thing; they were simply unreachable.
+    if (e instanceof Error && /must request permission|Cannot access contents of the page|missing host permission/i.test(e.message)) {
       throw new InjectionDeniedError(e.message);
     }
     return { signals: null, url: originOf(tab.url) };

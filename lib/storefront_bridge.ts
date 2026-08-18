@@ -2,6 +2,7 @@
 // fetchers, adapt the results. Mirrors lib/catalogue_bridge.ts, and like it
 // never throws -- a failure here must degrade to a stated "couldn't read",
 // never take the scan result off the screen.
+import { browser } from "wxt/browser";
 import { collectStorefrontQuery, collectProductSitemapCount } from "./storefront";
 import { DIGEST_EDGES_QUERY, BEST_SELLERS_QUERY, EXPORT_PAGE_QUERY } from "./storefront_queries";
 import { adaptStorefrontProduct } from "./storefront_adapter";
@@ -18,14 +19,14 @@ const UNREADABLE: CatalogueDigest = {
 };
 
 async function activeTabId(): Promise<number | undefined> {
-  const [tab] = await globalThis.chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   return tab?.id;
 }
 
 async function inject<T>(func: (...args: any[]) => Promise<T>, args: unknown[]): Promise<T | null> {
   const tabId = await activeTabId();
   if (tabId === undefined) return null;
-  const [injection] = await globalThis.chrome.scripting.executeScript({
+  const [injection] = await browser.scripting.executeScript({
     target: { tabId }, world: "MAIN", func, args,
   });
   return (injection?.result as T) ?? null;

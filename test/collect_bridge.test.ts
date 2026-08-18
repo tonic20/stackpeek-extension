@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { collectFromActiveTab } from "../lib/collect_bridge";
 import { InjectionDeniedError } from "../lib/errors";
 import { WINDOW_GLOBALS } from "../lib/window_globals";
+import { stubBrowser } from "./setup";
 
 beforeEach(() => {
-  globalThis.chrome = {
+  stubBrowser({
     tabs: { query: vi.fn(async () => [{ id: 7, url: "https://demo.example/" }]) },
     scripting: {
       executeScript: vi.fn(async () => [
@@ -20,7 +21,7 @@ beforeEach(() => {
         set: vi.fn(async () => undefined),
       },
     },
-  } as unknown as typeof chrome;
+  });
   globalThis.fetch = vi.fn().mockRejectedValue(new Error("no network in this test")) as unknown as typeof fetch;
 });
 
@@ -90,6 +91,30 @@ describe("collectFromActiveTab", () => {
   it("throws when the injection is refused for want of permission", async () => {
     (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("Cannot access contents of the page. Extension manifest must request permission to access the respective host."),
+    );
+
+    await expect(collectFromActiveTab()).rejects.toBeInstanceOf(InjectionDeniedError);
+  });
+
+  // Firefox words the same refusal differently, and the wording is the only
+  // thing there is to classify on. Observed on Firefox 153 (2026-08-18) on a
+  // real storefront: the panel auto-rescans when the active tab changes, that
+  // rescan carries no user gesture, and Firefox has already revoked the
+  // activeTab grant the toolbar click gave us -- so every scan after a
+  // navigation threw this, fell past the Chrome-only patterns, and rendered
+  // "Can't scan this page" on a storefront one click away from scanning.
+  it("throws when Firefox refuses the injection for want of permission", async () => {
+    (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Missing host permission for the tab"),
+    );
+
+    await expect(collectFromActiveTab()).rejects.toBeInstanceOf(InjectionDeniedError);
+  });
+
+  // Firefox's frame variant of the same refusal (bugzilla 1448129).
+  it("throws when Firefox refuses the injection for a frame", async () => {
+    (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Frame not found, or missing host permission"),
     );
 
     await expect(collectFromActiveTab()).rejects.toBeInstanceOf(InjectionDeniedError);

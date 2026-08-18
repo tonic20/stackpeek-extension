@@ -3,7 +3,7 @@
 [![CI](https://github.com/tonic20/stackpeek-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/tonic20/stackpeek-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Chrome MV3 side-panel extension that detects what a Shopify store is built
+An MV3 side-panel extension that detects what a Shopify store is built
 with — its theme, its apps, and its tracking pixels — on the currently active
 tab.
 
@@ -47,13 +47,19 @@ kinds excluded above (this includes `preload`, `prefetch`, and
 asset path can reach the server even though the page's own URL never does.
 
 The identifier is a
-`crypto.randomUUID()` generated once and stored in `chrome.storage.local` —
-it is not derived from you, your machine, or the page, so it identifies this
-installation, not a person; see `lib/install_id.ts` for how it's made. What
-it does not send: your browsing history, page contents, form data, or
-anything from a tab you did not click the toolbar icon on. The permissions
-are `activeTab`, `scripting`, `sidePanel`, and `storage` — no broad host
-access. `lib/collector.ts` is what gets read from the page,
+`crypto.randomUUID()`, generated once and stored in `browser.storage.local` on
+Chrome. On Firefox, storing it is gated behind the optional
+`technicalAndInteraction` data-collection grant: decline it and the ID is
+instead generated fresh in memory each panel session and never written to
+storage. Either way it is not derived from you, your machine, or the page, so
+it identifies this installation (or, on Firefox with the grant declined, this
+session), not a person; see `lib/install_id.ts` for how it's made. What it
+does not send: your browsing history, page contents, form data, or anything
+from a tab you did not click the toolbar icon on. The permissions are
+`activeTab`, `scripting`, and `storage` on both browsers, plus `sidePanel` on
+Chrome — Firefox draws the same panel via `sidebar_action`, which needs no
+permission at all, so it has one fewer. No broad host access on either
+browser. `lib/collector.ts` is what gets read from the page,
 `lib/collect_bridge.ts` is where the tab's URL is cut down to an origin
 before it joins the payload, `lib/install_id.ts` is where the identifier
 above comes from, and `lib/api.ts` is what actually leaves the browser —
@@ -142,7 +148,7 @@ The build writes a loadable unpacked extension to `.output/chrome-mv3/`:
   `import.meta.env.WXT_API_BASE` at call time (see `lib/api.ts`)
 
 To load it manually: open `chrome://extensions`, enable **Developer mode**,
-click **Load unpacked**, and select `extension/.output/chrome-mv3`.
+click **Load unpacked**, and select `.output/chrome-mv3`.
 
 ## Test
 
@@ -186,14 +192,17 @@ entry automatically. Before shipping a production build:
 2. Run the prod build with a matching `WXT_API_BASE` (see above) so the
    API URL used at runtime and the granted host permission agree.
 
-The extension's only other permissions are `activeTab`, `scripting`,
-`sidePanel`, and `storage` — no broad host permissions, no background
-browsing history access.
+The extension's only other permissions are `activeTab`, `scripting`, and
+`storage` on both browsers, plus `sidePanel` on Chrome (Firefox draws the same
+panel via `sidebar_action`, which needs no permission) — no broad host
+permissions, no background browsing history access.
 
 ## Manual smoke checklist
 
-The steps below require a real Chrome instance and cannot be automated
-headlessly — run them yourself after building:
+The steps below are written against Chrome and require a real browser
+instance — they cannot be automated headlessly. The same checks apply on
+Firefox with `npm run dev:firefox` in step 2 and `about:debugging#/runtime/this-firefox`
+in place of `chrome://extensions`; run them yourself after building:
 
 1. **Start the backend.** From the monorepo's `backend/` (not part of this
    repository):

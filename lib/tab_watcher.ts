@@ -6,6 +6,7 @@
 // the homepage, the permissions table, the FAQ and /privacy all promise we do
 // not take it. These events fire without it -- they merely withhold `url` --
 // and "the result is stale" is the whole question (design D4).
+import { browser } from "wxt/browser";
 import { claimActivation } from "./held_tabs";
 
 export function watchActiveTab(
@@ -21,7 +22,7 @@ export function watchActiveTab(
     onHold?: (holding: boolean) => void;
   } = {},
 ): { stop: () => void } {
-  const tabs = globalThis.chrome?.tabs;
+  const tabs = browser?.tabs;
   if (!tabs) return { stop: () => {} };
 
   // The tab whose result is on screen. Undefined until the opening query

@@ -1,17 +1,16 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { extensionVersion } from "../lib/version";
+import { stubBrowser } from "./setup";
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension; tests install
-  // and remove it per case.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("extensionVersion", () => {
   it("reads the version from the manifest", () => {
-    globalThis.chrome = {
+    stubBrowser({
       runtime: { getManifest: () => ({ version: "9.9.9" }) },
-    } as unknown as typeof chrome;
+    });
 
     expect(extensionVersion()).toBe("9.9.9");
   });

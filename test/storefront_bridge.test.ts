@@ -1,12 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { stubBrowser } from "./setup";
 
 function chromeWith(results: unknown[]) {
   const executeScript = vi.fn(async () => [{ result: results.shift() }]);
-  (globalThis as any).chrome = {
+  stubBrowser({
     tabs: { query: async () => [{ id: 1 }] },
     scripting: { executeScript },
     storage: { local: { get: async () => ({}), set: async () => {} } },
-  };
+  });
   return executeScript;
 }
 

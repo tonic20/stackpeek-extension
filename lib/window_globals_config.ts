@@ -6,6 +6,7 @@
 // This is phase 1 of issue #21: the backend can now push new probe names
 // without an extension release. See lib/window_globals.ts for why the
 // bundled list still exists and is never dropped.
+import { browser } from "wxt/browser";
 import { WINDOW_GLOBALS } from "./window_globals";
 import { fetchConfig } from "./api";
 
@@ -36,7 +37,7 @@ function isFreshCacheEntry(value: unknown): value is CachedProbeList {
 }
 
 async function readCachedGlobals(): Promise<string[] | null> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY);
+  const stored = await browser.storage.local.get(STORAGE_KEY);
   const entry = stored[STORAGE_KEY];
   return isFreshCacheEntry(entry) ? entry.globals : null;
 }
@@ -45,7 +46,7 @@ async function refreshCachedGlobals(): Promise<string[] | null> {
   const { window_globals } = await fetchConfig();
   if (!isStringArray(window_globals)) return null;
   const entry: CachedProbeList = { globals: window_globals, fetchedAt: Date.now() };
-  await chrome.storage.local.set({ [STORAGE_KEY]: entry });
+  await browser.storage.local.set({ [STORAGE_KEY]: entry });
   return window_globals;
 }
 

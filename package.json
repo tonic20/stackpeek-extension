@@ -1,6 +1,6 @@
 {
   "name": "extension",
-  "version": "0.3.1",
+  "version": "0.4.1",
   "description": "Stackpeek Shopify theme & app detector extension",
   "private": true,
   "type": "module",
@@ -11,6 +11,7 @@
     "zip": "node scripts/assert-release-safe.mjs && wxt zip",
     "build:release": "WXT_API_BASE=https://api.stackpeek.app wxt build",
     "zip:release": "WXT_API_BASE=https://api.stackpeek.app wxt zip",
+    "zip:release:firefox": "WXT_API_BASE=https://api.stackpeek.app wxt zip -b firefox",
     "compile": "svelte-check",
     "postinstall": "wxt prepare",
     "test": "vitest run",

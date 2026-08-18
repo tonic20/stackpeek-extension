@@ -10,6 +10,8 @@
 // object read once at render -- happens to work today only because the compiler
 // treats a bare function call as constant, which is a bet on an optimisation
 // rather than a declared dependency.
+import { browser } from "wxt/browser";
+
 export type SectionId =
   | "theme"
   | "apps"
@@ -45,7 +47,7 @@ function isSectionId(value: string): value is SectionId {
 // Anything unrecognised is dropped rather than trusted: this key shares storage
 // with `theme` and `install_id` and outlives upgrades.
 export async function loadSections(): Promise<void> {
-  const result = await globalThis.chrome?.storage?.local?.get(KEY);
+  const result = await browser?.storage?.local?.get(KEY);
   const stored = result?.[KEY];
   const next: SectionState = {};
 
@@ -77,7 +79,7 @@ export function setOpen(id: SectionId, open: boolean): void {
   const snapshot = { ...sections };
 
   try {
-    void globalThis.chrome?.storage?.local?.set({ [KEY]: snapshot }).catch(() => {
+    void browser?.storage?.local?.set({ [KEY]: snapshot }).catch(() => {
       // Storage denied. The section still toggled; the choice just is not kept.
     });
   } catch {

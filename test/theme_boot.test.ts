@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { saveTheme } from "../lib/theme";
+import { stubBrowser } from "./setup";
 
 // The panel opened in the wrong scheme for a user who had chosen one.
 //
@@ -30,20 +31,19 @@ let store: Record<string, unknown>;
 
 beforeEach(() => {
   store = {};
-  globalThis.chrome = {
+  stubBrowser({
     storage: { local: {
       get: vi.fn(async (k: string) => ({ [k]: store[k] })),
       set: vi.fn(async (obj: Record<string, unknown>) => { Object.assign(store, obj); }),
     } },
-  } as unknown as typeof chrome;
+  });
   localStorage.clear();
 });
 
 afterEach(() => {
   document.documentElement.removeAttribute("data-sp-theme");
   localStorage.clear();
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 describe("the pre-paint theme bootstrap", () => {

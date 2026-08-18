@@ -1,14 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { stubBrowser } from "./setup";
 
 const store: Record<string, unknown> = {};
 beforeEach(() => {
   for (const k of Object.keys(store)) delete store[k];
-  (globalThis as any).chrome = {
+  stubBrowser({
     storage: { local: {
       get: async (k: string) => (k in store ? { [k]: store[k] } : {}),
       set: async (v: Record<string, unknown>) => { Object.assign(store, v); },
     } },
-  };
+  });
   vi.resetModules();
 });
 

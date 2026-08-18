@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { runRounds } from "../lib/detect_runner";
 import { collectFromActiveTab } from "../lib/collect_bridge";
 import { InjectionDeniedError } from "../lib/errors";
+import { stubBrowser } from "./setup";
 
 const ok = { is_shopify: true, apps: [], pixels: [], infrastructure: [], unknown_domain_count: 0 };
 const noSleep = async () => {};
@@ -195,7 +196,7 @@ describe("runRounds", () => {
 // what lands in the payload runRounds hands to `send`.
 describe("the url handed to send() is an origin, pinned at the exit", () => {
   it("carries only the origin of a tab url with a path and query, never the full url", async () => {
-    globalThis.chrome = {
+    stubBrowser({
       tabs: {
         query: vi.fn(async () => [
           { id: 7, url: "https://demo.example/products/foo?discount=SAVE10&cart_token=abc123" },
@@ -209,7 +210,7 @@ describe("the url handed to send() is an origin, pinned at the exit", () => {
       storage: {
         local: { get: vi.fn(async () => ({})), set: vi.fn(async () => undefined) },
       },
-    } as unknown as typeof chrome;
+    });
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("no network in this test")) as unknown as typeof fetch;
 
     const send = vi.fn(async (_payload: Record<string, unknown>) => ok);

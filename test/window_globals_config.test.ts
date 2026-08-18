@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { WINDOW_GLOBALS } from "../lib/window_globals";
 import { resolveProbeList, CONFIG_CACHE_TTL_MS } from "../lib/window_globals_config";
+import { stubBrowser } from "./setup";
 
 const STORAGE_KEY = "window_globals_config_cache";
 
 function mockChromeStorage(initial: Record<string, unknown> = {}) {
   const store: Record<string, unknown> = { ...initial };
-  globalThis.chrome = {
+  stubBrowser({
     storage: {
       local: {
         get: vi.fn(async (key: string) => ({ [key]: store[key] })),
@@ -15,7 +16,7 @@ function mockChromeStorage(initial: Record<string, unknown> = {}) {
         }),
       },
     },
-  } as unknown as typeof chrome;
+  });
   return store;
 }
 

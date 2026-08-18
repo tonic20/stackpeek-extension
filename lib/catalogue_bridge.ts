@@ -1,3 +1,4 @@
+import { browser } from "wxt/browser";
 import { collectCatalogueDigest, collectCataloguePage, collectCollectionPages } from "./catalogue";
 import type { CatalogueDigest, CatalogueProduct, CollectionPages } from "./catalogue_types";
 
@@ -15,7 +16,7 @@ const UNREADABLE: CatalogueDigest = {
 };
 
 async function activeTabId(): Promise<number | undefined> {
-  const [tab] = await globalThis.chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   return tab?.id;
 }
 
@@ -27,7 +28,7 @@ export async function fetchCatalogueDigest(): Promise<CatalogueDigest> {
   try {
     const tabId = await activeTabId();
     if (tabId === undefined) return UNREADABLE;
-    const [injection] = await globalThis.chrome.scripting.executeScript({
+    const [injection] = await browser.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
       func: collectCatalogueDigest,
@@ -43,7 +44,7 @@ export async function fetchCataloguePage(page: number): Promise<CatalogueProduct
   try {
     const tabId = await activeTabId();
     if (tabId === undefined) return null;
-    const [injection] = await globalThis.chrome.scripting.executeScript({
+    const [injection] = await browser.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
       func: collectCataloguePage,
@@ -61,7 +62,7 @@ export async function fetchCollectionPages(): Promise<CollectionPages | null> {
   try {
     const tabId = await activeTabId();
     if (tabId === undefined) return null;
-    const [injection] = await globalThis.chrome.scripting.executeScript({
+    const [injection] = await browser.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
       func: collectCollectionPages,

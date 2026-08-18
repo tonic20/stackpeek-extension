@@ -159,9 +159,9 @@ describe("manifest icons", () => {
 // defect it was meant to fix.
 describe("host_permissions is scoped to build mode", () => {
   const manifestOption = (config as { manifest?: unknown }).manifest;
-  const buildManifest = (mode: string) =>
+  const buildManifest = (mode: string, browser = "chrome") =>
     typeof manifestOption === "function"
-      ? manifestOption({ mode, command: "build", browser: "chrome", manifestVersion: 3 })
+      ? manifestOption({ mode, command: "build", browser, manifestVersion: 3 })
       : manifestOption;
 
   it("grants only the production API host in a production build", () => {
@@ -173,5 +173,92 @@ describe("host_permissions is scoped to build mode", () => {
     const manifest = buildManifest("development");
     expect(manifest.host_permissions).toContain("http://localhost:3070/*");
     expect(manifest.host_permissions).toContain("https://api.stackpeek.app/*");
+  });
+});
+
+// The Firefox manifest is a different document from the Chrome one, and every
+// difference below is something addons-linter rejects or Firefox ignores:
+// `sidePanel` is not a Firefox permission (MANIFEST_PERMISSIONS), an MV3
+// add-on without a gecko id cannot be signed (ADDON_ID_REQUIRED), and AMO has
+// required data_collection_permissions of every new extension since
+// 2025-11-03 (MISSING_DATA_COLLECTION_PERMISSIONS).
+//
+// These read wxt.config.ts and nothing outside extension/, so they run in the
+// public mirror too and must NOT be guarded by IN_MONOREPO.
+describe("the Firefox manifest", () => {
+  const manifestOption = (config as { manifest?: unknown }).manifest;
+  const forBrowser = (browser: string) =>
+    (manifestOption as (env: object) => Record<string, any>)({
+      mode: "production", command: "build", browser, manifestVersion: 3,
+    });
+
+  it("is built as MV3, like Chrome's", () => {
+    // WXT defaults Firefox to MV2. Left alone, `wxt zip -b firefox` emits
+    // firefox-mv2/, where `action` is `browser_action` and the background
+    // entrypoint's browser.action.onClicked is undefined at runtime.
+    expect((config as { manifestVersion?: number }).manifestVersion).toBe(3);
+  });
+
+  it("carries the permanent gecko id", () => {
+    const gecko = forBrowser("firefox").browser_specific_settings.gecko;
+    expect(gecko.id).toBe("stackpeek@kopylov.net");
+  });
+
+  it("floors at Firefox 140, where data_collection_permissions exists", () => {
+    const gecko = forBrowser("firefox").browser_specific_settings.gecko;
+    expect(gecko.strict_min_version).toBe("140.0");
+  });
+
+  it("declares websiteContent as required and technicalAndInteraction as optional", () => {
+    // technicalAndInteraction is ILLEGAL in `required` — Mozilla's rule is
+    // that it must be optional. Putting it in `required` fails AMO validation
+    // outright, which is how reverse-image-search 0.7.0 was rejected.
+    const gecko = forBrowser("firefox").browser_specific_settings.gecko;
+    expect(gecko.data_collection_permissions).toEqual({
+      required: ["websiteContent"],
+      optional: ["technicalAndInteraction"],
+    });
+  });
+
+  it("does not claim Android, which has no sidebar_action", () => {
+    expect(forBrowser("firefox").browser_specific_settings.gecko_android).toBeUndefined();
+  });
+
+  it("drops sidePanel, which Firefox rejects as a permission", () => {
+    expect(forBrowser("firefox").permissions).toEqual(["activeTab", "scripting", "storage"]);
+  });
+
+  it("declares the sidebar icon on the entrypoint, the only input WXT does not overwrite", () => {
+    // WXT's addEntrypoints reassigns manifest.sidebar_action wholesale AFTER
+    // the config's manifest object is merged (wxt/dist/core/utils/manifest.mjs),
+    // reading default_icon from the sidepanel entrypoint's own options. A
+    // sidebar_action key returned from wxt.config.ts is silently discarded, so
+    // the meta tag in the entrypoint HTML is what actually ships the icon.
+    const html = readFileSync(resolve(__dirname, "../entrypoints/sidepanel/index.html"), "utf8");
+    expect(html).toContain('name="manifest.default_icon"');
+    for (const size of [16, 32, 48, 128]) {
+      expect(html).toContain(`"${size}":"icon-${size}.png"`);
+    }
+  });
+
+  it("does not set sidebar_action itself, since WXT discards it unconditionally", () => {
+    // wxt.config.ts cannot control sidebar_action at all -- addEntrypoints
+    // overwrites the key regardless of what's returned here. Leaving a stale
+    // sidebar_action in this object would teach the next reader that the
+    // config controls something it does not.
+    expect(forBrowser("firefox").sidebar_action).toBeUndefined();
+  });
+
+  it("keeps sidePanel in the Chrome manifest", () => {
+    expect(forBrowser("chrome").permissions).toEqual([
+      "activeTab", "scripting", "sidePanel", "storage",
+    ]);
+  });
+
+  it("keeps browser_specific_settings out of the Chrome manifest", () => {
+    // WXT does not strip this key on its own. Left in the shared object it
+    // ships to Chrome, which logs "Unrecognized manifest key".
+    expect(forBrowser("chrome").browser_specific_settings).toBeUndefined();
+    expect(forBrowser("chrome").sidebar_action).toBeUndefined();
   });
 });

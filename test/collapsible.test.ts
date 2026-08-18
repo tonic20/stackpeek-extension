@@ -7,23 +7,23 @@ import BestSellers from "../entrypoints/sidepanel/components/BestSellers.svelte"
 import ThemeCard from "../entrypoints/sidepanel/components/ThemeCard.svelte";
 import ProductSummary from "../entrypoints/sidepanel/components/ProductSummary.svelte";
 import { loadSections } from "../lib/sections.svelte";
+import { stubBrowser } from "./setup";
 
 let store: Record<string, unknown>;
 
 beforeEach(async () => {
   store = {};
-  globalThis.chrome = {
+  stubBrowser({
     storage: { local: {
       get: vi.fn(async (k: string) => ({ [k]: store[k] })),
       set: vi.fn(async (obj: Record<string, unknown>) => { Object.assign(store, obj); }),
     } },
-  } as unknown as typeof chrome;
+  });
   await loadSections();
 });
 
 afterEach(() => {
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
 });
 
 // <details> nests INSIDE <section class="sp-sec"> rather than replacing it.

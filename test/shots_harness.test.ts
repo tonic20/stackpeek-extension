@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { installChromeShim, harnessProps } from "../shots/main";
+import { stubBrowser } from "./setup";
 
 // @wxt-dev/browser reads globalThis.browser exactly once, the moment its own
 // module body runs, and freezes the result -- so shots/i18n_shim.ts (which
@@ -39,8 +40,7 @@ it("keeps the i18n shim as the first import in main.ts", () => {
 
 describe("shots harness", () => {
   beforeEach(() => {
-    // @ts-expect-error deleting the shim between tests
-    delete globalThis.chrome;
+    stubBrowser({});
   });
 
   it("installs a chrome.storage.local that round-trips values", async () => {

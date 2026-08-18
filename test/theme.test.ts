@@ -1,22 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { systemTheme, storedTheme, applyTheme, saveTheme } from "../lib/theme";
+import { stubBrowser } from "./setup";
 
 let store: Record<string, unknown>;
 
 beforeEach(() => {
   store = {};
-  globalThis.chrome = {
+  stubBrowser({
     storage: { local: {
       get: vi.fn(async (k: string) => ({ [k]: store[k] })),
       set: vi.fn(async (obj: Record<string, unknown>) => { Object.assign(store, obj); }),
     } },
-  } as unknown as typeof chrome;
+  });
 });
 
 afterEach(() => {
   document.documentElement.removeAttribute("data-sp-theme");
-  // @ts-expect-error `chrome` only exists inside the extension.
-  delete globalThis.chrome;
+  stubBrowser({});
   // @ts-expect-error matchMedia is installed per-case below.
   delete globalThis.matchMedia;
 });
@@ -52,8 +52,7 @@ describe("storedTheme", () => {
   });
 
   it("returns nothing where no extension APIs exist", async () => {
-    // @ts-expect-error exercising the no-chrome path
-    delete globalThis.chrome;
+    stubBrowser({});
     expect(await storedTheme()).toBeUndefined();
   });
 });
