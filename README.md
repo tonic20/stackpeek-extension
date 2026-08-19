@@ -89,6 +89,117 @@ The product itself lives at [stackpeek.app](https://stackpeek.app), and the
 privacy policy the claims above are written against is at
 [stackpeek.app/privacy](https://stackpeek.app/privacy).
 
+## Reproducing the reviewed build (Mozilla Add-ons)
+
+This section exists for AMO source-code review. It is the complete, ordered
+procedure for producing a byte-identical copy of the submitted extension.
+
+### Build environment
+
+| | |
+|---|---|
+| **Node.js** | **24.18.1** — the submitted build used exactly this. The `24` line is what the project targets; `package.json` pins no engine, so use 24.18.1 to reproduce the hashes below exactly. |
+| **npm** | **11.16.0** (ships with Node 24.18.1) |
+| **Operating system** | Built on **macOS 26.4.1**. No step is OS-specific: the toolchain is Node and npm only, with no native modules, no system libraries and no shell beyond npm scripts. Linux and Windows running the same Node should reproduce it. |
+| **Network** | `npm ci` needs registry access. The build itself makes no network calls. |
+
+Installing Node 24.18.1, if you do not have it:
+
+```bash
+# with nvm (https://github.com/nvm-sh/nvm)
+nvm install 24.18.1 && nvm use 24.18.1
+
+# or download it directly from https://nodejs.org/dist/v24.18.1/
+node --version   # must print v24.18.1
+npm --version    # must print 11.16.0
+```
+
+### Build steps
+
+From the **root of this source archive** — every path below is relative to
+where `package.json` sits, and there is no `extension/` directory inside the
+archive:
+
+```bash
+npm ci                          # 1. install the pinned dependency tree
+npm run zip:release:firefox     # 2. build and package the Firefox extension
+```
+
+That is the whole procedure. `npm ci` is required rather than `npm install`:
+it installs exactly what `package-lock.json` specifies, which is what makes
+the output reproducible.
+
+### The build script
+
+Step 2 runs `zip:release:firefox`, defined in `package.json`:
+
+```
+"zip:release:firefox": "WXT_API_BASE=https://api.stackpeek.app wxt zip -b firefox"
+```
+
+It performs every technical step needed, in this order:
+
+1. Sets `WXT_API_BASE=https://api.stackpeek.app`. **This is load-bearing.**
+   The API base is baked into the bundle at build time (`lib/api.ts` reads
+   `import.meta.env.WXT_API_BASE`), so building without it produces a
+   different, non-matching bundle. `scripts/assert-release-safe.mjs` guards
+   the `build`/`zip` scripts against exactly that mistake.
+2. Runs WXT, which builds through Vite — rollup bundles the modules into
+   hashed chunks, esbuild transforms and minifies, and the Svelte compiler
+   turns `.svelte` components into JavaScript.
+3. Emits the loadable extension to `.output/firefox-mv3/` and packages it as
+   `.output/extension-<version>-firefox.zip`, alongside a sources archive.
+
+No other command, environment variable or manual step is involved.
+
+### Expected output, and how to verify it
+
+```
+.output/firefox-mv3/                       loadable unpacked extension
+.output/extension-0.4.1-firefox.zip        the submitted package
+.output/extension-0.4.1-sources.zip        this archive
+```
+
+Two clean builds run in the same shell produce byte-identical output —
+verified 2026-08-18 by building, deleting `.output/`, and rebuilding. Both
+runs produced the same chunk filename and the same hashes:
+
+```
+b63f32a5bd5006d68216fee627dddc8ba2c83eca91dcaddf7813d1894cfcee76  .output/firefox-mv3/background.js
+429053d92270fe2cb3323e42e8dcd5b1f5db707b0eeba619b7c0ff4f0bb4fa92  .output/firefox-mv3/chunks/sidepanel-Cbg6EO7m.js
+```
+
+Check yours with:
+
+```bash
+shasum -a 256 .output/firefox-mv3/background.js .output/firefox-mv3/chunks/*.js
+```
+
+If they differ, the two likely causes are `WXT_API_BASE` not being set to
+`https://api.stackpeek.app` (which changes a string baked into the bundle),
+or having run `npm install` rather than `npm ci`.
+
+### Source files are not machine-generated
+
+Everything in this archive is original source as written: TypeScript under
+`lib/` and `entrypoints/`, Svelte components, YAML message catalogues under
+`locales/`, and PNG icons under `public/`. Nothing here is transpiled,
+concatenated or minified — that all happens during the build, into `.output/`,
+which is not part of this archive. The only third-party code is the
+dependency tree `package-lock.json` pins, fetched by `npm ci`.
+
+You can also run the test suite and type-checker against these sources:
+
+```bash
+npm test        # Vitest
+npm run compile # svelte-check
+```
+
+Two test blocks skip outside the development monorepo, by design — they read
+fixtures that live outside this directory. Everything else runs.
+
+---
+
 ## Requirements
 
 - Node.js + npm
