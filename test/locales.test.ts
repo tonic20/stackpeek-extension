@@ -5,11 +5,19 @@ import { resolve } from "node:path";
 import { parseMessagesText, generateChromeMessages } from "@wxt-dev/i18n/build";
 
 const LOCALES_DIR = resolve(__dirname, "../locales");
-const files = readdirSync(LOCALES_DIR).filter((f) => f.endsWith(".yml"));
+const files = readdirSync(LOCALES_DIR).filter((f) => f.endsWith(".yml")).sort();
 
 // Chrome's own ceilings for the two manifest strings, from
 // https://developer.chrome.com/docs/webstore/cws-dashboard-listing.
 const LIMITS = { extName: 75, extDescription: 132 } as const;
+
+const messagesOf = (file: string) =>
+  generateChromeMessages(
+    parseMessagesText(readFileSync(resolve(LOCALES_DIR, file), "utf8"), "YAML"),
+  );
+
+const placeholdersOf = (message: string) =>
+  [...message.matchAll(/(?<!\$)\$(\d+)/g)].map((match) => match[1]).sort();
 
 describe("locales", () => {
   it("ships at least one locale", () => {
@@ -23,9 +31,7 @@ describe("locales", () => {
   // release cycle.
   for (const file of files) {
     describe(file, () => {
-      const messages = generateChromeMessages(
-        parseMessagesText(readFileSync(resolve(LOCALES_DIR, file), "utf8"), "YAML"),
-      );
+      const messages = messagesOf(file);
 
       it("carries the manifest strings and a format locale", () => {
         expect(messages.extName?.message).toBeTruthy();
@@ -46,7 +52,30 @@ describe("locales", () => {
       // back to a default locale instead of throwing) -- that failure mode is
       // a mistranslation, not a crash, and is out of scope for this guard.
       it("has a formatLocale Intl recognizes as a locale", () => {
-        expect(() => Intl.getCanonicalLocales(messages.formatLocale!.message)).not.toThrow();
+        expect(Intl.getCanonicalLocales(messages.formatLocale!.message)).toEqual([
+          messages.formatLocale!.message,
+        ]);
+      });
+
+      it("contains no empty generated messages", () => {
+        for (const [key, message] of Object.entries(messages)) {
+          expect(message.message.trim(), key).not.toBe("");
+        }
+      });
+
+      it("does not use the unsupported pipe plural encoding", () => {
+        for (const [key, message] of Object.entries(messages)) {
+          expect(message.message, key).not.toContain(" | ");
+        }
+      });
+
+      it("defines every explicit tracker plural category", () => {
+        expect(Object.keys(messages)).toEqual(expect.arrayContaining([
+          "trackers_unidentified_one",
+          "trackers_unidentified_few",
+          "trackers_unidentified_many",
+          "trackers_unidentified_other",
+        ]));
       });
 
       for (const [key, limit] of Object.entries(LIMITS)) {
@@ -84,14 +113,7 @@ describe("locales", () => {
   // Not covered here, because it fails loudly on its own: a value containing
   // ": " makes the YAML parser throw at build time rather than mis-nest.
   const DEFAULT_LOCALE = "en.yml";
-  const keysOf = (file: string) =>
-    new Set(
-      Object.keys(
-        generateChromeMessages(
-          parseMessagesText(readFileSync(resolve(LOCALES_DIR, file), "utf8"), "YAML"),
-        ),
-      ),
-    );
+  const keysOf = (file: string) => new Set(Object.keys(messagesOf(file)));
 
   for (const file of files.filter((f) => f !== DEFAULT_LOCALE)) {
     it(`${file} defines exactly the keys ${DEFAULT_LOCALE} does`, () => {
@@ -100,6 +122,17 @@ describe("locales", () => {
 
       expect([...expected].filter((k) => !actual.has(k)).sort()).toEqual([]);
       expect([...actual].filter((k) => !expected.has(k)).sort()).toEqual([]);
+    });
+
+    it(`${file} preserves every ${DEFAULT_LOCALE} placeholder`, () => {
+      const expected = messagesOf(DEFAULT_LOCALE);
+      const actual = messagesOf(file);
+
+      for (const [key, english] of Object.entries(expected)) {
+        expect(placeholdersOf(actual[key]!.message), key).toEqual(
+          placeholdersOf(english.message),
+        );
+      }
     });
   }
 });

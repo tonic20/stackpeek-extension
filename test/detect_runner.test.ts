@@ -232,4 +232,30 @@ describe("the url handed to send() is an origin, pinned at the exit", () => {
     expect(payload.url).not.toContain("discount");
     expect(payload.url).not.toContain("cart_token");
   });
+
+  // Sent per round rather than once per install: it costs nothing, and the
+  // server's COALESCE means a round without it cannot blank a known value.
+  it("sends the browser UI language with each round", async () => {
+    stubBrowser({ i18n: { getUILanguage: () => "th" } });
+    const send = vi.fn(async (_payload: Record<string, unknown>) => ok);
+    const collect = vi.fn(async () => ({ signals: { script_urls: [] }, url: "https://s.example/" }));
+
+    await runRounds({ collect, send, installId: "k1", onUpdate: () => {}, onNoSignals: () => {}, sleep: noSleep });
+
+    expect(send).toHaveBeenCalled();
+    for (const [body] of send.mock.calls) expect(body.language).toBe("th");
+  });
+
+  // Omitted, not sent as "" or null: the server treats an absent key as "not
+  // reported" and would reject the empty string anyway, so sending one only
+  // puts a junk value on the wire.
+  it("omits the language entirely when the API cannot supply one", async () => {
+    stubBrowser({});
+    const send = vi.fn(async (_payload: Record<string, unknown>) => ok);
+    const collect = vi.fn(async () => ({ signals: { script_urls: [] }, url: "https://s.example/" }));
+
+    await runRounds({ collect, send, installId: "k1", onUpdate: () => {}, onNoSignals: () => {}, sleep: noSleep });
+
+    for (const [body] of send.mock.calls) expect("language" in body).toBe(false);
+  });
 });

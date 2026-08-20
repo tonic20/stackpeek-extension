@@ -1,0 +1,137 @@
+formatLocale: id-ID
+extName: Pendeteksi tema & aplikasi Shopify — Stackpeek
+extDescription: Lihat tema, aplikasi, dan pelacak toko Shopify seketika. Ekspor CSV, cepat, izin minimal, tanpa menyimpan riwayat jelajah.
+actionTitle: Deteksi tema dan aplikasi toko ini
+
+panel:
+  scanning: Memindai…
+  rescan: Pindai ulang halaman ini
+  privacy: Privasi
+  held: Masih menampilkan $1 — halaman yang Anda buka tidak dipindai.
+theme:
+  heading: Tema
+  headless: Etalase headless
+  custom: Tema khusus
+  unknown: Tema tidak dikenal
+  customized: disesuaikan
+  free: Gratis
+  storeTheme: tema toko
+  forkedFrom: Diturunkan dari $1 lalu dimodifikasi.
+  customNote: Dibuat untuk toko ini — tidak cocok dengan katalog.
+  headlessNote: Tema tidak dapat dideteksi — etalase terpisah dari lapisan tema Shopify.
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: katalog
+    forked: fork
+    custom: khusus
+    headless: headless
+
+apps:
+  heading: Aplikasi
+  unverified: belum diverifikasi
+  unverifiedTitle: Kecocokan sidik jari dengan keyakinan lebih rendah
+  unverifiedSr: — kecocokan sidik jari dengan keyakinan lebih rendah
+  unverifiedNote: belum diverifikasi — cocok berdasarkan sinyal yang lebih lemah. Ditampilkan agar Anda dapat menilainya.
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: Email & SMS
+  pageBuilder: Pembuat Halaman
+  reviews: Ulasan
+  upsell: Upsell
+  subscriptions: Langganan
+  sales: Penjualan
+  marketing: Pemasaran
+  storeDesign: Desain Toko
+  customerService: Layanan Pelanggan
+  socialMedia: Media Sosial
+  analytics: Analitik
+  advertising: Periklanan
+  discounts: Diskon
+  payments: Pembayaran
+  shippingDelivery: Pengiriman & Pengantaran
+  orders: Pesanan
+  productManagement: Manajemen Produk
+  searchNavigation: Pencarian & Navigasi
+  localization: Pelokalan
+  loyalty: Loyalitas
+  trustSecurity: Kepercayaan & Keamanan
+  privacyCompliance: Privasi & Kepatuhan
+  dropshipping: Dropshipping & Sumber Barang
+  seo: SEO
+  storeManagement: Manajemen Toko
+  performance: Performa
+  accessibility: Aksesibilitas
+
+trackers:
+  heading: Pelacak
+  none: Tidak ada yang terdeteksi di halaman ini.
+  unidentified:
+    one: $1 pelacak lain sedang kami identifikasi
+    few: $1 pelacak lain sedang kami identifikasi
+    many: $1 pelacak lain sedang kami identifikasi
+    other: $1 pelacak lain sedang kami identifikasi
+infrastructure:
+  heading: Infrastruktur
+products:
+  heading: Produk
+  priceRange: Rentang harga
+  variants: Varian
+  newest: Terbaru
+  newestToday: hari ini
+  reading: Membaca katalog…
+  unreadable: Katalog tidak dapat dibaca.
+  notPublic: Katalog toko ini tidak tersedia untuk umum.
+  retry: Coba lagi
+  export: Ekspor katalog CSV
+  range: $1 – $2
+  progress: $1 / $2
+  exported: $1 diekspor
+  importFormat: Format impor Shopify
+  countImportFormat: $1 produk · format impor Shopify
+  countExportsFirst: $1 produk · mengekspor $2 pertama
+bestSellers:
+  heading: Terlaris
+  showFewer: Tampilkan lebih sedikit
+  showMore: Tampilkan $1 lagi
+themeToggle:
+  toDark: Beralih ke tema gelap
+  toLight: Beralih ke tema terang
+terminal:
+  notShopify:
+    code: tidak cocok
+    title: Bukan toko Shopify.
+    body: Sudah dibandingkan dengan katalog dan tidak cocok. Tidak ada data halaman yang disimpan.
+    action: Pindai lagi
+  cantScan:
+    code: halaman tak terbaca
+    title: Halaman ini tidak dapat dipindai.
+    body: Halaman browser, Web Store, dan PDF tertutup bagi ekstensi. Buka tab etalase lalu coba di sana.
+  error:
+    code: jaringan
+    title: Pendeteksi tidak dapat dijangkau.
+    body: Sinyal halaman telah dibaca, tetapi API tidak menjawab. Tidak ada yang disimpan.
+    action: Coba lagi
+  rateLimited:
+    code: "429"
+    title: Tunggu sebentar lalu coba lagi.
+    body: Terlalu banyak pemindaian dalam waktu singkat. Batas akan diatur ulang otomatis.
+    action: Coba lagi
+  needsPermission:
+    code: izin
+    title: Buka Stackpeek di toko ini.
+    body: Klik ikon Stackpeek di bilah alat untuk memindai halaman ini. Browser memberikan akses ke satu toko setiap kali, sehingga panel tidak dapat melakukannya untuk Anda.
+  ours:
+    code: ini kami
+    title: Anda mengarahkan pendeteksi ke pendeteksi itu sendiri.
+    body: Bukan Shopify. Rails dan Postgres di server DigitalOcean — ditambah satu beacon analitik, satu-satunya skrip pihak ketiga di halaman. Kami tidak mengecualikan diri sendiri.
+    action: Pindai lagi

@@ -1,0 +1,137 @@
+formatLocale: ja-JP
+extName: Shopifyテーマ＆アプリ検出 — Stackpeek
+extDescription: Shopifyストアのテーマ、アプリ、トラッカーを瞬時に確認。CSV出力対応。高速・最小限の権限で、閲覧履歴は保存しません。
+actionTitle: このストアのテーマとアプリを検出
+
+panel:
+  scanning: スキャン中…
+  rescan: このページを再スキャン
+  privacy: プライバシー
+  held: 引き続き$1を表示しています — 開いたリストはスキャンされていません。
+theme:
+  heading: テーマ
+  headless: ヘッドレスストアフロント
+  custom: カスタムテーマ
+  unknown: 不明なテーマ
+  customized: カスタマイズ済み
+  free: 無料
+  storeTheme: ストアテーマ
+  forkedFrom: $1を基に変更されています。
+  customNote: このストア専用に構築 — カタログに一致なし。
+  headlessNote: テーマを検出できません — ストアフロントがShopifyのテーマ層から分離されています。
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: カタログ
+    forked: 派生
+    custom: カスタム
+    headless: ヘッドレス
+
+apps:
+  heading: アプリ
+  unverified: 未検証
+  unverifiedTitle: 信頼度が低いフィンガープリント一致
+  unverifiedSr: — 信頼度が低いフィンガープリント一致
+  unverifiedNote: 未検証 — 弱いシグナルに基づく一致です。ご自身で判断できるよう表示しています。
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: メール & SMS
+  pageBuilder: ページビルダー
+  reviews: レビュー
+  upsell: アップセル
+  subscriptions: サブスクリプション
+  sales: 販売
+  marketing: マーケティング
+  storeDesign: ストアデザイン
+  customerService: カスタマーサービス
+  socialMedia: ソーシャルメディア
+  analytics: アナリティクス
+  advertising: 広告
+  discounts: 割引
+  payments: 決済
+  shippingDelivery: 配送 & 配達
+  orders: 注文
+  productManagement: 商品管理
+  searchNavigation: 検索 & ナビゲーション
+  localization: ローカリゼーション
+  loyalty: ロイヤルティ
+  trustSecurity: 信頼 & セキュリティ
+  privacyCompliance: プライバシー & コンプライアンス
+  dropshipping: ドロップシッピング & 仕入れ
+  seo: SEO
+  storeManagement: ストア管理
+  performance: パフォーマンス
+  accessibility: アクセシビリティ
+
+trackers:
+  heading: トラッカー
+  none: このページでは検出されませんでした。
+  unidentified:
+    one: ほか$1件のトラッカーを識別中
+    few: ほか$1件のトラッカーを識別中
+    many: ほか$1件のトラッカーを識別中
+    other: ほか$1件のトラッカーを識別中
+infrastructure:
+  heading: インフラ
+products:
+  heading: 商品
+  priceRange: 価格帯
+  variants: バリエーション
+  newest: 最新
+  newestToday: 今日
+  reading: カタログを読み込み中…
+  unreadable: カタログを読み込めませんでした。
+  notPublic: このストアのカタログは公開されていません。
+  retry: 再試行
+  export: カタログをCSV出力
+  range: $1～$2
+  progress: $1 / $2
+  exported: $1件を出力
+  importFormat: Shopifyインポート形式
+  countImportFormat: $1商品 · Shopifyインポート形式
+  countExportsFirst: $1商品 · 最初の$2件を出力
+bestSellers:
+  heading: 売れ筋商品
+  showFewer: 表示を減らす
+  showMore: あと$1件表示
+themeToggle:
+  toDark: ダークテーマに切り替え
+  toLight: ライトテーマに切り替え
+terminal:
+  notShopify:
+    code: 一致なし
+    title: Shopifyストアではありません。
+    body: カタログと照合しましたが一致しませんでした。ページに関する情報は保存されていません。
+    action: もう一度スキャン
+  cantScan:
+    code: 読み取り不可
+    title: このページはスキャンできません。
+    body: ブラウザの内部ページ、Web Store、PDFには拡張機能からアクセスできません。ストアフロントのタブを開いてお試しください。
+  error:
+    code: ネットワーク
+    title: 検出サービスに接続できませんでした。
+    body: ページのシグナルは読み取りましたが、APIから応答がありませんでした。何も保存されていません。
+    action: 再試行
+  rateLimited:
+    code: "429"
+    title: 少し待ってからもう一度お試しください。
+    body: 短時間にスキャンが集中しました。制限は自動的に解除されます。
+    action: 再試行
+  needsPermission:
+    code: 権限
+    title: このストアでStackpeekを開いてください。
+    body: ツールバーのStackpeekアイコンをクリックしてこのページをスキャンしてください。ブラウザは一度に1ストアずつアクセスを許可するため、パネルからは実行できません。
+  ours:
+    code: Stackpeekです
+    title: 検出ツール自身を検出しようとしています。
+    body: Shopifyではありません。DigitalOcean上のRailsとPostgresに加え、ページ唯一の外部スクリプトである分析ビーコンがあります。自社サイトも例外にしません。
+    action: もう一度スキャン

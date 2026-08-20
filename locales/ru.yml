@@ -1,0 +1,137 @@
+formatLocale: ru-RU
+extName: Детектор тем и приложений Shopify — Stackpeek
+extDescription: Мгновенно покажет тему, приложения и трекеры магазина Shopify. Экспорт CSV, минимум разрешений, история не сохраняется.
+actionTitle: Определить тему и приложения магазина
+
+panel:
+  scanning: Сканирование…
+  rescan: Сканировать страницу снова
+  privacy: Конфиденциальность
+  held: По-прежнему показан $1 — открытая вами страница не сканируется.
+theme:
+  heading: Тема
+  headless: Headless-витрина
+  custom: Индивидуальная тема
+  unknown: Неизвестная тема
+  customized: изменена
+  free: Бесплатно
+  storeTheme: тема из магазина
+  forkedFrom: Создана на основе $1 и изменена.
+  customNote: Создана для этого магазина — совпадений в каталоге нет.
+  headlessNote: Тему определить нельзя — витрина отделена от слоя тем Shopify.
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: каталог
+    forked: форк
+    custom: на заказ
+    headless: headless
+
+apps:
+  heading: Приложения
+  unverified: не подтверждено
+  unverifiedTitle: Совпадение цифрового отпечатка с меньшей уверенностью
+  unverifiedSr: — совпадение цифрового отпечатка с меньшей уверенностью
+  unverifiedNote: не подтверждено — совпадение по более слабому сигналу. Показано, чтобы вы могли оценить его сами.
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: Email и SMS
+  pageBuilder: Конструктор страниц
+  reviews: Отзывы
+  upsell: Допродажи
+  subscriptions: Подписки
+  sales: Продажи
+  marketing: Маркетинг
+  storeDesign: Дизайн магазина
+  customerService: Поддержка клиентов
+  socialMedia: Соцсети
+  analytics: Аналитика
+  advertising: Реклама
+  discounts: Скидки
+  payments: Платежи
+  shippingDelivery: Доставка
+  orders: Заказы
+  productManagement: Управление товарами
+  searchNavigation: Поиск и навигация
+  localization: Локализация
+  loyalty: Лояльность
+  trustSecurity: Доверие и безопасность
+  privacyCompliance: Приватность и соответствие
+  dropshipping: Дропшиппинг и поставки
+  seo: SEO
+  storeManagement: Управление магазином
+  performance: Производительность
+  accessibility: Доступность
+
+trackers:
+  heading: Трекеры
+  none: На этой странице ничего не обнаружено.
+  unidentified:
+    one: ещё $1 трекер проходит идентификацию
+    few: ещё $1 трекера проходят идентификацию
+    many: ещё $1 трекеров проходят идентификацию
+    other: ещё $1 трекера проходят идентификацию
+infrastructure:
+  heading: Инфраструктура
+products:
+  heading: Товары
+  priceRange: Диапазон цен
+  variants: Варианты
+  newest: Новейшие
+  newestToday: сегодня
+  reading: Чтение каталога…
+  unreadable: Не удалось прочитать каталог.
+  notPublic: Каталог этого магазина не открыт.
+  retry: Повторить
+  export: Экспортировать каталог в CSV
+  range: $1 – $2
+  progress: $1 / $2
+  exported: Экспортировано $1
+  importFormat: Формат импорта Shopify
+  countImportFormat: $1 товаров · формат импорта Shopify
+  countExportsFirst: $1 товаров · экспорт первых $2
+bestSellers:
+  heading: Бестселлеры
+  showFewer: Показать меньше
+  showMore: Показать ещё $1
+themeToggle:
+  toDark: Включить тёмную тему
+  toLight: Включить светлую тему
+terminal:
+  notShopify:
+    code: совпадений нет
+    title: Это не магазин Shopify.
+    body: Страница сверена с каталогом, совпадений нет. Ничего о странице не сохранено.
+    action: Сканировать снова
+  cantScan:
+    code: страница недоступна
+    title: Эту страницу нельзя сканировать.
+    body: Страницы браузера, Web Store и PDF закрыты для расширений. Откройте вкладку с витриной и попробуйте там.
+  error:
+    code: сеть
+    title: Не удалось связаться с детектором.
+    body: Сигналы страницы прочитаны, но API не ответил. Ничего не сохранено.
+    action: Повторить
+  rateLimited:
+    code: "429"
+    title: Подождите немного и попробуйте снова.
+    body: Слишком много сканирований за короткое время. Лимит сбросится автоматически.
+    action: Повторить
+  needsPermission:
+    code: разрешение
+    title: Откройте Stackpeek в этом магазине.
+    body: Нажмите значок Stackpeek на панели инструментов, чтобы сканировать страницу. Браузер даёт доступ по одному магазину, поэтому боковая панель не может сделать это сама.
+  ours:
+    code: это мы
+    title: Вы направили детектор на сам детектор.
+    body: Не Shopify. Rails и Postgres на сервере DigitalOcean, а ещё один аналитический маяк — единственный сторонний скрипт на странице. Для себя исключений не делаем.
+    action: Сканировать снова

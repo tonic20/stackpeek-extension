@@ -1,6 +1,7 @@
 <script lang="ts">
   import Section from "./Section.svelte";
   import { i18n } from "#i18n";
+  import { unidentifiedTrackers } from "../../../lib/plural";
 
   // Always renders, empty or not: a store with no tracking is a finding, not an
   // absence, and saying so is the point of the section.
@@ -28,7 +29,7 @@
        triaged into apps and trackers, never into infrastructure. -->
   {#if unknownDomainCount > 0}
     <p class="sp-quiet">
-      {i18n.t("trackers.unidentified", unknownDomainCount, [String(unknownDomainCount)])}
+      {unidentifiedTrackers(unknownDomainCount)}
     </p>
   {/if}
 </Section>

@@ -1,0 +1,137 @@
+formatLocale: fr-FR
+extName: Détecteur de thèmes et apps Shopify — Stackpeek
+extDescription: Identifiez aussitôt le thème, les apps et les traceurs d’une boutique Shopify. Export CSV, rapide et permissions minimales.
+actionTitle: Détecter le thème et les apps de cette boutique
+
+panel:
+  scanning: Analyse en cours…
+  rescan: Analyser à nouveau cette page
+  privacy: Confidentialité
+  held: Affichage maintenu sur $1 — la fiche ouverte n’est pas analysée.
+theme:
+  heading: Thème
+  headless: Boutique headless
+  custom: Thème sur mesure
+  unknown: Thème inconnu
+  customized: personnalisé
+  free: Gratuit
+  storeTheme: thème de la boutique
+  forkedFrom: Dérivé de $1 puis modifié.
+  customNote: Créé pour cette boutique — aucune correspondance dans le catalogue.
+  headlessNote: Thème indétectable — la boutique est dissociée de la couche de thèmes de Shopify.
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: catalogue
+    forked: dérivé
+    custom: sur mesure
+    headless: headless
+
+apps:
+  heading: Apps
+  unverified: non vérifié
+  unverifiedTitle: Correspondance d’empreinte moins fiable
+  unverifiedSr: — correspondance d’empreinte moins fiable
+  unverifiedNote: non vérifié — correspondance fondée sur un signal plus faible. Affichée pour vous laisser l’évaluer.
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: E-mail et SMS
+  pageBuilder: Créateur de pages
+  reviews: Avis
+  upsell: Vente incitative
+  subscriptions: Abonnements
+  sales: Ventes
+  marketing: Marketing
+  storeDesign: Design de boutique
+  customerService: Service client
+  socialMedia: Réseaux sociaux
+  analytics: Analyses
+  advertising: Publicité
+  discounts: Réductions
+  payments: Paiements
+  shippingDelivery: Expédition et livraison
+  orders: Commandes
+  productManagement: Gestion des produits
+  searchNavigation: Recherche et navigation
+  localization: Localisation
+  loyalty: Fidélité
+  trustSecurity: Confiance et sécurité
+  privacyCompliance: Confidentialité et conformité
+  dropshipping: Dropshipping et sourcing
+  seo: SEO
+  storeManagement: Gestion de la boutique
+  performance: Performance
+  accessibility: Accessibilité
+
+trackers:
+  heading: Traceurs
+  none: Aucun détecté sur cette page.
+  unidentified:
+    one: $1 autre traceur en cours d’identification
+    few: $1 autres traceurs en cours d’identification
+    many: $1 autres traceurs en cours d’identification
+    other: $1 autres traceurs en cours d’identification
+infrastructure:
+  heading: Infrastructure
+products:
+  heading: Produits
+  priceRange: Fourchette de prix
+  variants: Variantes
+  newest: Plus récent
+  newestToday: aujourd’hui
+  reading: Lecture du catalogue…
+  unreadable: Impossible de lire le catalogue.
+  notPublic: Le catalogue de cette boutique n’est pas public.
+  retry: Réessayer
+  export: Exporter le catalogue en CSV
+  range: $1 – $2
+  progress: $1 / $2
+  exported: $1 exportés
+  importFormat: Format d’importation Shopify
+  countImportFormat: $1 produits · format d’importation Shopify
+  countExportsFirst: $1 produits · exporte les $2 premiers
+bestSellers:
+  heading: Meilleures ventes
+  showFewer: Afficher moins
+  showMore: Afficher $1 de plus
+themeToggle:
+  toDark: Passer au thème sombre
+  toLight: Passer au thème clair
+terminal:
+  notShopify:
+    code: aucune correspondance
+    title: Ce n’est pas une boutique Shopify.
+    body: Comparaison au catalogue effectuée sans résultat. Aucune donnée de la page n’a été stockée.
+    action: Analyser à nouveau
+  cantScan:
+    code: page illisible
+    title: Impossible d’analyser cette page.
+    body: Les pages du navigateur, le Web Store et les PDF sont inaccessibles aux extensions. Ouvrez l’onglet d’une boutique et réessayez.
+  error:
+    code: réseau
+    title: Impossible de joindre le détecteur.
+    body: Les signaux de la page ont été lus, mais l’API n’a pas répondu. Rien n’a été stocké.
+    action: Réessayer
+  rateLimited:
+    code: "429"
+    title: Patientez un instant avant de réessayer.
+    body: Trop d’analyses sur une courte période. La limite se réinitialise automatiquement.
+    action: Réessayer
+  needsPermission:
+    code: autorisation
+    title: Ouvrez Stackpeek sur cette boutique.
+    body: Cliquez sur l’icône Stackpeek dans la barre d’outils pour analyser cette page. Le navigateur accorde l’accès à une boutique à la fois, le panneau ne peut donc pas le faire à votre place.
+  ours:
+    code: c’est nous
+    title: Vous avez pointé le détecteur vers lui-même.
+    body: Pas Shopify. Rails et Postgres sur un serveur DigitalOcean, plus une balise d’analyse, seul script tiers de la page. Nous ne nous exemptons pas.
+    action: Analyser à nouveau

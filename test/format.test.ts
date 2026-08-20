@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import { browser } from "wxt/browser";
 import { formatLocale, number, money, daysAgo } from "../lib/format";
 
 afterEach(() => {
@@ -7,7 +8,13 @@ afterEach(() => {
 
 describe("format", () => {
   it("takes its locale from the message file, not the browser UI language", () => {
+    const getUILanguage = vi.fn(() => "nl-NL");
+    Object.assign(browser.i18n, { getUILanguage });
+
     expect(formatLocale()).toBe("en-US");
+    expect(getUILanguage).not.toHaveBeenCalled();
+
+    delete (browser.i18n as Partial<typeof browser.i18n>).getUILanguage;
   });
 
   it("groups numbers", () => {
@@ -70,5 +77,18 @@ describe("format", () => {
 
     expect(daysAgo("2026-08-15T09:00:00Z")).toBe("today");
     expect(daysAgo("2026-08-16T12:00:00Z")).toBe("today");
+  });
+
+  it.each([
+    "en-US", "de-DE", "es", "fr-FR", "hi-IN", "id-ID", "it-IT",
+    "ja-JP", "ko-KR", "pt-BR", "ru-RU", "th-TH", "tr-TR", "vi-VN",
+    "zh-CN",
+  ])("supports every approved formatter locale: %s", (locale) => {
+    expect(new Intl.NumberFormat(locale).format(1240)).not.toBe("");
+    expect(new Intl.RelativeTimeFormat(locale).format(-2, "day")).not.toBe("");
+
+    for (const count of [1, 2, 5, 11, 21]) {
+      expect(new Intl.PluralRules(locale).select(count)).not.toBe("");
+    }
   });
 });

@@ -1,0 +1,137 @@
+formatLocale: zh-CN
+extName: Shopify 主题与应用检测器 — Stackpeek
+extDescription: 即时查看任意 Shopify 商店的主题、应用和跟踪器。快速导出 CSV，仅需最少权限，绝不记录浏览历史。
+actionTitle: 检测此商店的主题和应用
+
+panel:
+  scanning: 正在扫描…
+  rescan: 重新扫描此页面
+  privacy: 隐私
+  held: 仍在显示 $1 — 你打开的列表尚未扫描。
+theme:
+  heading: 主题
+  headless: 无头店面
+  custom: 定制主题
+  unknown: 未知主题
+  customized: 已定制
+  free: 免费
+  storeTheme: 商店主题
+  forkedFrom: 基于 $1 修改而来。
+  customNote: 为此商店专门构建 — 目录中无匹配项。
+  headlessNote: 无法检测主题 — 店面已与 Shopify 主题层分离。
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: 目录
+    forked: 分支
+    custom: 定制
+    headless: 无头
+
+apps:
+  heading: 应用
+  unverified: 未验证
+  unverifiedTitle: 可信度较低的指纹匹配
+  unverifiedSr: — 可信度较低的指纹匹配
+  unverifiedNote: 未验证 — 根据较弱信号匹配。保留显示供你自行判断。
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: 邮件与短信
+  pageBuilder: 页面构建器
+  reviews: 评价
+  upsell: 追加销售
+  subscriptions: 订阅
+  sales: 销售
+  marketing: 营销
+  storeDesign: 店铺设计
+  customerService: 客户服务
+  socialMedia: 社交媒体
+  analytics: 分析
+  advertising: 广告
+  discounts: 折扣
+  payments: 支付
+  shippingDelivery: 配送与物流
+  orders: 订单
+  productManagement: 商品管理
+  searchNavigation: 搜索与导航
+  localization: 本地化
+  loyalty: 忠诚度
+  trustSecurity: 信任与安全
+  privacyCompliance: 隐私与合规
+  dropshipping: 一件代发与货源
+  seo: SEO
+  storeManagement: 店铺管理
+  performance: 性能
+  accessibility: 无障碍
+
+trackers:
+  heading: 跟踪器
+  none: 此页面未检测到跟踪器。
+  unidentified:
+    one: 另有 $1 个跟踪器正在识别
+    few: 另有 $1 个跟踪器正在识别
+    many: 另有 $1 个跟踪器正在识别
+    other: 另有 $1 个跟踪器正在识别
+infrastructure:
+  heading: 基础设施
+products:
+  heading: 商品
+  priceRange: 价格范围
+  variants: 变体
+  newest: 最新
+  newestToday: 今天
+  reading: 正在读取目录…
+  unreadable: 无法读取目录。
+  notPublic: 此商店的目录未公开。
+  retry: 重试
+  export: 将目录导出为 CSV
+  range: $1 – $2
+  progress: $1 / $2
+  exported: 已导出 $1 个
+  importFormat: Shopify 导入格式
+  countImportFormat: $1 个商品 · Shopify 导入格式
+  countExportsFirst: $1 个商品 · 导出前 $2 个
+bestSellers:
+  heading: 畅销商品
+  showFewer: 收起
+  showMore: 再显示 $1 个
+themeToggle:
+  toDark: 切换到深色主题
+  toLight: 切换到浅色主题
+terminal:
+  notShopify:
+    code: 无匹配项
+    title: 这不是 Shopify 商店。
+    body: 已与目录比对，但没有匹配项。未存储任何页面信息。
+    action: 重新扫描
+  cantScan:
+    code: 页面无法读取
+    title: 无法扫描此页面。
+    body: 浏览器页面、Web Store 和 PDF 不允许扩展程序访问。请打开店面标签页后重试。
+  error:
+    code: 网络
+    title: 无法连接检测服务。
+    body: 已读取页面信号，但 API 未响应。未存储任何信息。
+    action: 重试
+  rateLimited:
+    code: "429"
+    title: 请稍后再试。
+    body: 短时间内扫描次数过多。限额会自动重置。
+    action: 重试
+  needsPermission:
+    code: 权限
+    title: 请在此商店中打开 Stackpeek。
+    body: 点击工具栏中的 Stackpeek 图标以扫描此页面。浏览器每次只授权访问一家商店，因此面板无法代你执行。
+  ours:
+    code: 这是我们
+    title: 你让检测器检测了自己。
+    body: 不是 Shopify。它是在 DigitalOcean 服务器上运行的 Rails 和 Postgres，另有一个分析信标，是页面唯一的第三方脚本。我们不会把自己排除在外。
+    action: 重新扫描

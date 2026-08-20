@@ -43,6 +43,15 @@ theme:
   customNote: Built for this store — no catalog match.
   headlessNote: Theme not detectable — the storefront is decoupled from Shopify's theme layer.
 
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: catalog
+    forked: forked
+    custom: custom
+    headless: headless
+
 apps:
   heading: Apps
   unverified: unverified
@@ -50,14 +59,55 @@ apps:
   unverifiedSr: — lower-confidence fingerprint match
   unverifiedNote: unverified — matched on a weaker signal. Shown so you can judge it.
 
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: Email & SMS
+  pageBuilder: Page Builder
+  reviews: Reviews
+  upsell: Upsell
+  subscriptions: Subscriptions
+  sales: Sales
+  marketing: Marketing
+  storeDesign: Store Design
+  customerService: Customer Service
+  socialMedia: Social Media
+  analytics: Analytics
+  advertising: Advertising
+  discounts: Discounts
+  payments: Payments
+  shippingDelivery: Shipping & Delivery
+  orders: Orders
+  productManagement: Product Management
+  searchNavigation: Search & Navigation
+  localization: Localization
+  loyalty: Loyalty
+  trustSecurity: Trust & Security
+  privacyCompliance: Privacy & Compliance
+  dropshipping: Dropshipping & Sourcing
+  seo: SEO
+  storeManagement: Store Management
+  performance: Performance
+  accessibility: Accessibility
+
 trackers:
   heading: Trackers
   none: None detected on this page.
-  # Object form, not "one | other": the string form yields plural: false and
-  # loses the t(key, count) overload entirely.
+  # Explicit CLDR categories, selected by lib/plural.ts. @wxt-dev/i18n's
+  # count overload only distinguishes exact 0 and 1, which cannot express
+  # Russian's one/few/many rules.
   unidentified:
-    1: $1 more tracker we're identifying
-    n: $1 more trackers we're identifying
+    one: $1 more tracker we're identifying
+    few: $1 more trackers we're identifying
+    many: $1 more trackers we're identifying
+    other: $1 more trackers we're identifying
 
 infrastructure:
   heading: Infrastructure

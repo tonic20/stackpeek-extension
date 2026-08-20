@@ -24,6 +24,9 @@
   import TerminalState from "./components/TerminalState.svelte";
   import ThemeToggle from "./components/ThemeToggle.svelte";
   import { i18n } from "#i18n";
+  import { applyDocumentLocale } from "../../lib/locale";
+
+  applyDocumentLocale();
 
   // runner returns { signals, url }; injected in tests, defaults to the real collector bridge (Task 7)
   // delays overrides the round schedule; only used by tests to avoid waiting out ROUND_DELAYS_MS.

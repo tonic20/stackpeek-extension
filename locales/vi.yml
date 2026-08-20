@@ -1,0 +1,137 @@
+formatLocale: vi-VN
+extName: Trình dò giao diện & ứng dụng Shopify — Stackpeek
+extDescription: Xem ngay giao diện, ứng dụng và trình theo dõi của mọi cửa hàng Shopify. Xuất CSV nhanh, ít quyền, không lưu lịch sử duyệt web.
+actionTitle: Dò giao diện và ứng dụng của cửa hàng này
+
+panel:
+  scanning: Đang quét…
+  rescan: Quét lại trang này
+  privacy: Quyền riêng tư
+  held: Vẫn đang hiển thị $1 — trang bạn vừa mở chưa được quét.
+theme:
+  heading: Giao diện
+  headless: Cửa hàng headless
+  custom: Giao diện tùy chỉnh
+  unknown: Giao diện không xác định
+  customized: đã tùy biến
+  free: Miễn phí
+  storeTheme: giao diện trên cửa hàng
+  forkedFrom: Phát triển từ $1 và đã chỉnh sửa.
+  customNote: Được làm riêng cho cửa hàng này — không khớp danh mục.
+  headlessNote: Không thể dò giao diện — cửa hàng đã tách khỏi lớp giao diện của Shopify.
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: danh mục
+    forked: phái sinh
+    custom: tùy chỉnh
+    headless: headless
+
+apps:
+  heading: Ứng dụng
+  unverified: chưa xác minh
+  unverifiedTitle: Kết quả dấu vết có độ tin cậy thấp hơn
+  unverifiedSr: — kết quả dấu vết có độ tin cậy thấp hơn
+  unverifiedNote: chưa xác minh — khớp từ tín hiệu yếu hơn. Được hiển thị để bạn tự đánh giá.
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: Email & SMS
+  pageBuilder: Trình tạo trang
+  reviews: Đánh giá
+  upsell: Bán thêm
+  subscriptions: Đăng ký
+  sales: Bán hàng
+  marketing: Tiếp thị
+  storeDesign: Thiết kế cửa hàng
+  customerService: Chăm sóc khách hàng
+  socialMedia: Mạng xã hội
+  analytics: Phân tích
+  advertising: Quảng cáo
+  discounts: Giảm giá
+  payments: Thanh toán
+  shippingDelivery: Vận chuyển & Giao hàng
+  orders: Đơn hàng
+  productManagement: Quản lý sản phẩm
+  searchNavigation: Tìm kiếm & Điều hướng
+  localization: Bản địa hóa
+  loyalty: Khách hàng thân thiết
+  trustSecurity: Tin cậy & Bảo mật
+  privacyCompliance: Quyền riêng tư & Tuân thủ
+  dropshipping: Dropshipping & Nguồn hàng
+  seo: SEO
+  storeManagement: Quản lý cửa hàng
+  performance: Hiệu suất
+  accessibility: Khả năng tiếp cận
+
+trackers:
+  heading: Trình theo dõi
+  none: Không phát hiện trình nào trên trang này.
+  unidentified:
+    one: đang nhận dạng thêm $1 trình theo dõi
+    few: đang nhận dạng thêm $1 trình theo dõi
+    many: đang nhận dạng thêm $1 trình theo dõi
+    other: đang nhận dạng thêm $1 trình theo dõi
+infrastructure:
+  heading: Hạ tầng
+products:
+  heading: Sản phẩm
+  priceRange: Khoảng giá
+  variants: Biến thể
+  newest: Mới nhất
+  newestToday: hôm nay
+  reading: Đang đọc danh mục…
+  unreadable: Không thể đọc danh mục.
+  notPublic: Danh mục của cửa hàng này không công khai.
+  retry: Thử lại
+  export: Xuất danh mục CSV
+  range: $1 – $2
+  progress: $1 / $2
+  exported: Đã xuất $1
+  importFormat: Định dạng nhập của Shopify
+  countImportFormat: $1 sản phẩm · định dạng nhập của Shopify
+  countExportsFirst: $1 sản phẩm · xuất $2 sản phẩm đầu tiên
+bestSellers:
+  heading: Bán chạy nhất
+  showFewer: Hiển thị ít hơn
+  showMore: Hiển thị thêm $1
+themeToggle:
+  toDark: Chuyển sang giao diện tối
+  toLight: Chuyển sang giao diện sáng
+terminal:
+  notShopify:
+    code: không khớp
+    title: Không phải cửa hàng Shopify.
+    body: Đã đối chiếu với danh mục nhưng không khớp. Không có dữ liệu nào của trang được lưu.
+    action: Quét lại
+  cantScan:
+    code: trang không đọc được
+    title: Không thể quét trang này.
+    body: Trang của trình duyệt, Web Store và tệp PDF không cho tiện ích truy cập. Hãy mở một tab cửa hàng rồi thử tại đó.
+  error:
+    code: mạng
+    title: Không thể kết nối với trình dò.
+    body: Đã đọc tín hiệu trang nhưng API không phản hồi. Không có gì được lưu.
+    action: Thử lại
+  rateLimited:
+    code: "429"
+    title: Vui lòng chờ một chút rồi thử lại.
+    body: Có quá nhiều lượt quét trong thời gian ngắn. Giới hạn sẽ tự đặt lại.
+    action: Thử lại
+  needsPermission:
+    code: quyền truy cập
+    title: Mở Stackpeek trên cửa hàng này.
+    body: Nhấp biểu tượng Stackpeek trên thanh công cụ để quét trang. Trình duyệt chỉ cấp quyền cho từng cửa hàng, vì vậy bảng điều khiển không thể tự làm thay bạn.
+  ours:
+    code: chính là chúng tôi
+    title: Bạn đã hướng trình dò vào chính nó.
+    body: Không phải Shopify. Rails và Postgres trên máy chủ DigitalOcean — cùng một beacon phân tích, tập lệnh bên thứ ba duy nhất trên trang. Chúng tôi không tự miễn trừ.
+    action: Quét lại

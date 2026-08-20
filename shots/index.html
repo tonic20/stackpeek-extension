@@ -4,10 +4,11 @@
     <meta charset="utf-8">
     <title>Panel shot harness</title>
     <style>
-      /* 460px sits just above the @container (min-width: 440px) breakpoint in
-         panel.css, so the app-category list renders as a two-column grid. */
+      /* The normal 460px capture sits just above panel.css's 440px container
+         breakpoint. Geometry QA also resizes the viewport to 320px, so the
+         mount must shrink with it instead of forcing horizontal overflow. */
       html, body { margin: 0; background: #fff; }
-      #app { width: 460px; }
+      #app { width: 100%; max-width: 460px; }
     </style>
   </head>
   <body>

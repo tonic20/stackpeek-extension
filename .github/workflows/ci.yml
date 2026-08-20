@@ -27,7 +27,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -112,6 +112,9 @@ jobs:
       # also silence the next one.
       - name: Build the Firefox extension
         run: WXT_ALLOW_LOCALHOST=1 npx wxt build -b firefox
+
+      - name: Verify browser locale outputs match the source locale set
+        run: npm run validate:built-locales
 
       - name: Lint the Firefox package with AMO's own validator
         run: npx web-ext lint --source-dir .output/firefox-mv3

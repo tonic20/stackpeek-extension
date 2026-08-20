@@ -2,6 +2,7 @@
   import Section from "./Section.svelte";
   import { heldLinkClick } from "../../../lib/held_tabs";
   import { i18n } from "#i18n";
+  import { categoryLabel } from "../../../lib/categories";
 
   type App = {
     name: string;
@@ -65,11 +66,11 @@
 
 <Section id="apps" heading={i18n.t("apps.heading")} count={apps.length}>
   <div class="sp-cats">
-    {#each groups as group (group.category)}
+    {#each groups as group (group.key)}
       <div class="sp-cat" data-sp-cat={group.key}>
-        <span class="sp-cat__label">{group.category}</span>
+        <span class="sp-cat__label">{categoryLabel(group.key, group.category)}</span>
         <ul class="sp-items">
-          {#each group.items as app (app.name)}
+          {#each group.items as app (app.category_slug + '/' + app.name)}
             <li class="sp-item">
               {#if app.app_store_url}
                 <a class="sp-item__name" href={app.app_store_url} target="_blank" rel="noreferrer" onclick={heldLinkClick}>{app.name}</a>

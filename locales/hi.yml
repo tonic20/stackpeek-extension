@@ -1,0 +1,137 @@
+formatLocale: hi-IN
+extName: Shopify थीम और ऐप डिटेक्टर — Stackpeek
+extDescription: किसी भी Shopify स्टोर की थीम, ऐप और ट्रैकर तुरंत देखें। तेज़ CSV निर्यात, न्यूनतम अनुमतियाँ और ब्राउज़िंग इतिहास कभी संग्रहीत नहीं।
+actionTitle: इस स्टोर की थीम और ऐप पहचानें
+
+panel:
+  scanning: स्कैन हो रहा है…
+  rescan: इस पेज को फिर स्कैन करें
+  privacy: गोपनीयता
+  held: अभी भी $1 दिखाया जा रहा है — आपकी खोली हुई लिस्टिंग स्कैन नहीं हुई है।
+theme:
+  heading: थीम
+  headless: हेडलेस स्टोरफ़्रंट
+  custom: कस्टम थीम
+  unknown: अज्ञात थीम
+  customized: अनुकूलित
+  free: मुफ़्त
+  storeTheme: स्टोर थीम
+  forkedFrom: $1 से लेकर संशोधित किया गया।
+  customNote: इस स्टोर के लिए बनाया गया — कैटलॉग में कोई मेल नहीं।
+  headlessNote: थीम पहचानना संभव नहीं — स्टोरफ़्रंट Shopify की थीम परत से अलग है।
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: कैटलॉग
+    forked: फोर्क
+    custom: कस्टम
+    headless: हेडलेस
+
+apps:
+  heading: ऐप
+  unverified: असत्यापित
+  unverifiedTitle: कम भरोसे वाला फ़िंगरप्रिंट मेल
+  unverifiedSr: — कम भरोसे वाला फ़िंगरप्रिंट मेल
+  unverifiedNote: असत्यापित — कमज़ोर संकेत पर मेल मिला। आपके आकलन के लिए दिखाया गया है।
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: ईमेल और SMS
+  pageBuilder: पेज बिल्डर
+  reviews: समीक्षाएं
+  upsell: अपसेल
+  subscriptions: सदस्यताएं
+  sales: बिक्री
+  marketing: मार्केटिंग
+  storeDesign: स्टोर डिज़ाइन
+  customerService: ग्राहक सेवा
+  socialMedia: सोशल मीडिया
+  analytics: एनालिटिक्स
+  advertising: विज्ञापन
+  discounts: छूट
+  payments: भुगतान
+  shippingDelivery: शिपिंग और डिलीवरी
+  orders: ऑर्डर
+  productManagement: उत्पाद प्रबंधन
+  searchNavigation: खोज और नेविगेशन
+  localization: स्थानीयकरण
+  loyalty: लॉयल्टी
+  trustSecurity: विश्वास और सुरक्षा
+  privacyCompliance: गोपनीयता और अनुपालन
+  dropshipping: ड्रॉपशिपिंग और सोर्सिंग
+  seo: SEO
+  storeManagement: स्टोर प्रबंधन
+  performance: प्रदर्शन
+  accessibility: सुगम्यता
+
+trackers:
+  heading: ट्रैकर
+  none: इस पेज पर कोई नहीं मिला।
+  unidentified:
+    one: $1 और ट्रैकर की पहचान की जा रही है
+    few: $1 और ट्रैकर की पहचान की जा रही है
+    many: $1 और ट्रैकर की पहचान की जा रही है
+    other: $1 और ट्रैकर की पहचान की जा रही है
+infrastructure:
+  heading: इन्फ़्रास्ट्रक्चर
+products:
+  heading: उत्पाद
+  priceRange: मूल्य सीमा
+  variants: वैरिएंट
+  newest: सबसे नया
+  newestToday: आज
+  reading: कैटलॉग पढ़ा जा रहा है…
+  unreadable: कैटलॉग पढ़ा नहीं जा सका।
+  notPublic: इस स्टोर का कैटलॉग सार्वजनिक नहीं है।
+  retry: फिर कोशिश करें
+  export: कैटलॉग CSV निर्यात करें
+  range: $1 – $2
+  progress: $1 / $2
+  exported: $1 निर्यात हुए
+  importFormat: Shopify आयात प्रारूप
+  countImportFormat: $1 उत्पाद · Shopify आयात प्रारूप
+  countExportsFirst: $1 उत्पाद · पहले $2 निर्यात करता है
+bestSellers:
+  heading: सर्वाधिक बिकने वाले
+  showFewer: कम दिखाएँ
+  showMore: $1 और दिखाएँ
+themeToggle:
+  toDark: डार्क थीम पर जाएँ
+  toLight: लाइट थीम पर जाएँ
+terminal:
+  notShopify:
+    code: कोई मेल नहीं
+    title: यह Shopify स्टोर नहीं है।
+    body: कैटलॉग से जाँच की गई और कोई मेल नहीं मिला। पेज के बारे में कुछ भी संग्रहीत नहीं हुआ।
+    action: फिर स्कैन करें
+  cantScan:
+    code: पेज पढ़ा नहीं जा सकता
+    title: यह पेज स्कैन नहीं किया जा सकता।
+    body: ब्राउज़र पेज, Web Store और PDF एक्सटेंशन के लिए बंद हैं। किसी स्टोरफ़्रंट का टैब खोलकर वहाँ कोशिश करें।
+  error:
+    code: नेटवर्क
+    title: डिटेक्टर तक नहीं पहुँचा जा सका।
+    body: पेज के संकेत पढ़े गए, लेकिन API ने जवाब नहीं दिया। कुछ भी संग्रहीत नहीं हुआ।
+    action: फिर कोशिश करें
+  rateLimited:
+    code: "429"
+    title: थोड़ा रुककर फिर कोशिश करें।
+    body: कम समय में बहुत अधिक स्कैन हुए। सीमा अपने आप रीसेट हो जाएगी।
+    action: फिर कोशिश करें
+  needsPermission:
+    code: अनुमति
+    title: इस स्टोर पर Stackpeek खोलें।
+    body: इस पेज को स्कैन करने के लिए टूलबार में Stackpeek आइकन पर क्लिक करें। ब्राउज़र एक बार में एक स्टोर की अनुमति देता है, इसलिए पैनल यह आपके लिए नहीं कर सकता।
+  ours:
+    code: यह हम हैं
+    title: आपने डिटेक्टर को उसी की ओर कर दिया।
+    body: Shopify नहीं। DigitalOcean सर्वर पर Rails और Postgres — साथ में एक analytics beacon, जो पेज पर एकमात्र तृतीय-पक्ष स्क्रिप्ट है। हम खुद को छूट नहीं देते।
+    action: फिर स्कैन करें

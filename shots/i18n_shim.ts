@@ -1,5 +1,36 @@
 import { makeGetMessage } from "../lib/chrome_messages";
 
+type HarnessMessages = Record<string, { message: string }>;
+
+export function makeStorageLocal(store: Record<string, unknown> = {}) {
+  return {
+    async get(key: string) {
+      return key in store ? { [key]: store[key] } : {};
+    },
+    async set(values: Record<string, unknown>) {
+      Object.assign(store, values);
+    },
+  };
+}
+
+export function selectHarnessLocale(
+  requested: string | null,
+  messagesByLocale: Record<string, HarnessMessages | undefined>,
+  localeTags: Record<string, string | undefined>,
+): { code: string; messages: HarnessMessages; tag: string } {
+  const code = requested ?? "en";
+  if (!/^[a-z]{2}(?:_[A-Z]{2})?$/.test(code)) {
+    throw new Error(`[shots] unsafe locale code: ${code}`);
+  }
+
+  const messages = messagesByLocale[code];
+  const tag = localeTags[code];
+  if (!messages || !tag) {
+    throw new Error(`[shots] locale ${code} was not compiled into the harness`);
+  }
+  return { code, messages, tag };
+}
+
 // Installs globalThis.browser -- with i18n.getMessage backed by the parsed
 // locale messages -- as a side effect of import. This file has no exports;
 // it exists only to be imported first, from main.ts, and nowhere else.
@@ -26,21 +57,33 @@ import { makeGetMessage } from "../lib/chrome_messages";
 // a curl of the harness still returns 200 either way: the failure only shows
 // up as a thrown exception when the mounted panel actually calls t().
 //
-// Guarded on SP_MESSAGES because Vitest also walks this import chain (for
+// Guarded on SP_MESSAGES_BY_LOCALE because Vitest also walks this import chain (for
 // harnessProps/installChromeShim in test/shots_harness.test.ts), and
-// SP_MESSAGES is a define only vite.harness.config.ts sets. An unguarded
+// the locale map is a define only vite.harness.config.ts sets. An unguarded
 // assignment here would stomp test/setup.ts's already-populated i18n stub
 // for the rest of that test file.
-const messages = import.meta.env.SP_MESSAGES;
+const messagesByLocale = import.meta.env.SP_MESSAGES_BY_LOCALE;
+const localeTags = import.meta.env.SP_LOCALE_TAGS;
 
-if (messages && Object.keys(messages).length > 0) {
+if (messagesByLocale && localeTags && Object.keys(messagesByLocale).length > 0) {
+  const selected = selectHarnessLocale(
+    new URLSearchParams(globalThis.location?.search ?? "").get("locale"),
+    messagesByLocale,
+    localeTags,
+  );
+  document.documentElement.lang = selected.tag;
+  const local = makeStorageLocal();
   (globalThis as Record<string, unknown>).browser = {
     runtime: { id: "shots" },
+    // getInstallId() runs through wxt/browser before the first API request.
+    // This has to live on the same early browser object as i18n because WXT
+    // freezes that object when its module is evaluated.
+    storage: { local },
     i18n: {
       // "" for a missing key, matching real Chrome -- see
       // lib/chrome_messages.ts for why this onMissing has to differ from
       // test/setup.ts's throwing one.
-      getMessage: makeGetMessage(messages, () => ""),
+      getMessage: makeGetMessage(selected.messages, () => ""),
     },
   };
 }

@@ -38,6 +38,13 @@ it("keeps the i18n shim as the first import in main.ts", () => {
   expect(shimImport).toBe(firstImport);
 });
 
+it("lets the harness panel shrink to the 320px geometry viewport", () => {
+  const source = readFileSync(resolve(__dirname, "../shots/index.html"), "utf8");
+
+  expect(source).toContain("#app { width: 100%; max-width: 460px; }");
+  expect(source).not.toContain("#app { width: 460px; }");
+});
+
 describe("shots harness", () => {
   beforeEach(() => {
     stubBrowser({});

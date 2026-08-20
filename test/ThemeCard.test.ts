@@ -100,4 +100,25 @@ describe("ThemeCard", () => {
     expect(container.querySelector(".sp-theme")).toBeNull();
     expect(container.querySelector(".sp-sec")).toBeNull();
   });
+
+  // The corner slot used to print theme.origin verbatim, which left "catalog"
+  // in English in all fourteen translations. These assert the label is a
+  // message, and that an origin the map does not know keeps the raw value
+  // rather than blanking the slot or throwing on an unknown i18n key.
+  describe("origin label", () => {
+    it("renders the origin as a localized message", () => {
+      render(ThemeCard, { theme: { name: "Dawn", origin: "catalog", version: "15.1.0" } });
+      expect(screen.getByText("catalog")).toBeInTheDocument();
+    });
+
+    it("keeps an unrecognized origin rather than blanking the slot", () => {
+      render(ThemeCard, { theme: { name: "Dawn", origin: "marketplace" as never } });
+      expect(screen.getByText("marketplace")).toBeInTheDocument();
+    });
+
+    it("renders no origin when the service sends none", () => {
+      const { container } = render(ThemeCard, { theme: { name: "Dawn" } });
+      expect(container.querySelector(".sp-count")?.textContent).toBe("");
+    });
+  });
 });

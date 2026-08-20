@@ -37,7 +37,7 @@
   } = $props();
 </script>
 
-<section class="sp-sec" aria-labelledby="sp-{id}-label">
+<section id="sp-section-{id}" class="sp-sec" aria-labelledby="sp-{id}-label">
   <!-- The DOM is the authority, not a local boolean: by the time `toggle`
        fires the browser has already applied the click to the element, so
        reading it back cannot drift out of step with what is on screen. Only

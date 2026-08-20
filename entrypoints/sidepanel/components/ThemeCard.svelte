@@ -23,6 +23,26 @@
   // .sp-count says "custom", so nothing here claims a catalog match.
   // headless is different in kind, not in policy: the service returns no name
   // for it at all, so the label is the only thing there is to show.
+  // The corner slot showed theme.origin verbatim, which left one English word
+  // ("catalog") in an otherwise translated panel. Mapped rather than looked up
+  // as `theme.origin.${origin}`: i18n.t() throws on an unknown key under
+  // test/setup.ts, so an origin the service adds later would fail a render
+  // instead of degrading. An unmapped origin falls through to the raw value,
+  // which is what shipped before this and is still better than a blank corner.
+  const ORIGIN_MESSAGES = {
+    catalog: "theme.origin.catalog",
+    forked: "theme.origin.forked",
+    custom: "theme.origin.custom",
+    headless: "theme.origin.headless",
+  } as const;
+
+  const origin = $derived.by(() => {
+    const value = theme?.origin;
+    if (!value) return "";
+    const key = ORIGIN_MESSAGES[value as keyof typeof ORIGIN_MESSAGES];
+    return key ? i18n.t(key) : value;
+  });
+
   const title = $derived(
     theme?.origin === "headless"
       ? i18n.t("theme.headless")
@@ -32,7 +52,7 @@
 </script>
 
 {#if theme}
-  <Section id="theme" heading={i18n.t("theme.heading")} count={theme.origin}>
+  <Section id="theme" heading={i18n.t("theme.heading")} count={origin}>
     <div
       class="sp-theme"
       class:sp-theme--plain={theme.origin === "custom"}

@@ -1,0 +1,137 @@
+formatLocale: tr-TR
+extName: Shopify tema ve uygulama dedektörü — Stackpeek
+extDescription: Her Shopify mağazasının temasını, uygulamalarını ve izleyicilerini anında görün. CSV dışa aktarımı, az izin, geçmiş kaydı yok.
+actionTitle: Bu mağazanın tema ve uygulamalarını algıla
+
+panel:
+  scanning: Taranıyor…
+  rescan: Bu sayfayı yeniden tara
+  privacy: Gizlilik
+  held: Hâlâ $1 gösteriliyor — açtığınız liste taranmadı.
+theme:
+  heading: Tema
+  headless: Headless vitrin
+  custom: Özel tema
+  unknown: Bilinmeyen tema
+  customized: özelleştirilmiş
+  free: Ücretsiz
+  storeTheme: mağaza teması
+  forkedFrom: $1 temel alınarak değiştirilmiş.
+  customNote: Bu mağaza için yapılmış — katalogda eşleşme yok.
+  headlessNote: Tema algılanamıyor — vitrin Shopify tema katmanından ayrılmış.
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: katalog
+    forked: fork
+    custom: özel
+    headless: headless
+
+apps:
+  heading: Uygulamalar
+  unverified: doğrulanmamış
+  unverifiedTitle: Daha düşük güvenli parmak izi eşleşmesi
+  unverifiedSr: — daha düşük güvenli parmak izi eşleşmesi
+  unverifiedNote: doğrulanmamış — daha zayıf bir sinyalle eşleşti. Değerlendirebilmeniz için gösteriliyor.
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: E-posta ve SMS
+  pageBuilder: Sayfa Oluşturucu
+  reviews: Değerlendirmeler
+  upsell: Ek Satış
+  subscriptions: Abonelikler
+  sales: Satış
+  marketing: Pazarlama
+  storeDesign: Mağaza Tasarımı
+  customerService: Müşteri Hizmetleri
+  socialMedia: Sosyal Medya
+  analytics: Analitik
+  advertising: Reklam
+  discounts: İndirimler
+  payments: Ödemeler
+  shippingDelivery: Kargo ve Teslimat
+  orders: Siparişler
+  productManagement: Ürün Yönetimi
+  searchNavigation: Arama ve Gezinme
+  localization: Yerelleştirme
+  loyalty: Sadakat
+  trustSecurity: Güven ve Güvenlik
+  privacyCompliance: Gizlilik ve Uyumluluk
+  dropshipping: Stoksuz Satış ve Tedarik
+  seo: SEO
+  storeManagement: Mağaza Yönetimi
+  performance: Performans
+  accessibility: Erişilebilirlik
+
+trackers:
+  heading: İzleyiciler
+  none: Bu sayfada algılanmadı.
+  unidentified:
+    one: $1 izleyici daha tanımlanıyor
+    few: $1 izleyici daha tanımlanıyor
+    many: $1 izleyici daha tanımlanıyor
+    other: $1 izleyici daha tanımlanıyor
+infrastructure:
+  heading: Altyapı
+products:
+  heading: Ürünler
+  priceRange: Fiyat aralığı
+  variants: Varyantlar
+  newest: En yeni
+  newestToday: bugün
+  reading: Katalog okunuyor…
+  unreadable: Katalog okunamadı.
+  notPublic: Bu mağazanın kataloğu herkese açık değil.
+  retry: Yeniden dene
+  export: Kataloğu CSV olarak dışa aktar
+  range: $1 – $2
+  progress: $1 / $2
+  exported: $1 dışa aktarıldı
+  importFormat: Shopify içe aktarma biçimi
+  countImportFormat: $1 ürün · Shopify içe aktarma biçimi
+  countExportsFirst: $1 ürün · ilk $2 ürünü dışa aktarır
+bestSellers:
+  heading: Çok satanlar
+  showFewer: Daha az göster
+  showMore: $1 tane daha göster
+themeToggle:
+  toDark: Koyu temaya geç
+  toLight: Açık temaya geç
+terminal:
+  notShopify:
+    code: eşleşme yok
+    title: Shopify mağazası değil.
+    body: Katalogla karşılaştırıldı ve eşleşme bulunamadı. Sayfaya ait hiçbir şey saklanmadı.
+    action: Yeniden tara
+  cantScan:
+    code: okunamayan sayfa
+    title: Bu sayfa taranamıyor.
+    body: Tarayıcı sayfaları, Web Store ve PDF'ler uzantılara kapalıdır. Bir mağaza sekmesi açıp orada deneyin.
+  error:
+    code: ağ
+    title: Dedektöre ulaşılamadı.
+    body: Sayfa sinyalleri okundu, ancak API yanıt vermedi. Hiçbir şey saklanmadı.
+    action: Yeniden dene
+  rateLimited:
+    code: "429"
+    title: Lütfen biraz bekleyip yeniden deneyin.
+    body: Kısa sürede çok fazla tarama yapıldı. Sınır kendiliğinden sıfırlanır.
+    action: Yeniden dene
+  needsPermission:
+    code: izin
+    title: Stackpeek'i bu mağazada açın.
+    body: Bu sayfayı taramak için araç çubuğundaki Stackpeek simgesine tıklayın. Tarayıcınız her seferinde yalnızca bir mağazaya erişim verir; bu yüzden panel bunu sizin yerinize yapamaz.
+  ours:
+    code: bu biziz
+    title: Dedektörü kendisine yönelttiniz.
+    body: Shopify değil. Bir DigitalOcean sunucusunda Rails ve Postgres — ayrıca sayfadaki tek üçüncü taraf betiği olan bir analiz işareti. Kendimizi muaf tutmuyoruz.
+    action: Yeniden tara

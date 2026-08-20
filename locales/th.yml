@@ -1,0 +1,137 @@
+formatLocale: th-TH
+extName: ตัวตรวจจับธีมและแอป Shopify — Stackpeek
+extDescription: ดูธีม แอป และตัวติดตามของร้าน Shopify ได้ทันที ส่งออก CSV รวดเร็ว ใช้สิทธิ์น้อย และไม่บันทึกประวัติการท่องเว็บ
+actionTitle: ตรวจหาธีมและแอปของร้านนี้
+
+panel:
+  scanning: กำลังสแกน…
+  rescan: สแกนหน้านี้อีกครั้ง
+  privacy: ความเป็นส่วนตัว
+  held: ยังคงแสดง $1 — รายการที่คุณเปิดยังไม่ได้รับการสแกน
+theme:
+  heading: ธีม
+  headless: หน้าร้านแบบ headless
+  custom: ธีมที่สร้างเฉพาะ
+  unknown: ไม่ทราบธีม
+  customized: ปรับแต่งแล้ว
+  free: ฟรี
+  storeTheme: ธีมจากร้าน
+  forkedFrom: ดัดแปลงจาก $1
+  customNote: สร้างขึ้นสำหรับร้านนี้ — ไม่ตรงกับแค็ตตาล็อก
+  headlessNote: ตรวจหาธีมไม่ได้ — หน้าร้านแยกออกจากชั้นธีมของ Shopify
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: แคตตาล็อก
+    forked: ฟอร์ก
+    custom: กำหนดเอง
+    headless: เฮดเลส
+
+apps:
+  heading: แอป
+  unverified: ยังไม่ยืนยัน
+  unverifiedTitle: การจับคู่ลายนิ้วมือที่มีความเชื่อมั่นต่ำกว่า
+  unverifiedSr: — การจับคู่ลายนิ้วมือที่มีความเชื่อมั่นต่ำกว่า
+  unverifiedNote: ยังไม่ยืนยัน — จับคู่จากสัญญาณที่อ่อนกว่า แสดงไว้เพื่อให้คุณพิจารณาเอง
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: อีเมลและ SMS
+  pageBuilder: เครื่องมือสร้างหน้า
+  reviews: รีวิว
+  upsell: อัปเซล
+  subscriptions: การสมัครสมาชิก
+  sales: การขาย
+  marketing: การตลาด
+  storeDesign: ออกแบบร้าน
+  customerService: บริการลูกค้า
+  socialMedia: โซเชียลมีเดีย
+  analytics: การวิเคราะห์
+  advertising: โฆษณา
+  discounts: ส่วนลด
+  payments: การชำระเงิน
+  shippingDelivery: การจัดส่ง
+  orders: คำสั่งซื้อ
+  productManagement: จัดการสินค้า
+  searchNavigation: ค้นหาและนำทาง
+  localization: การแปลภาษา
+  loyalty: สะสมแต้ม
+  trustSecurity: ความน่าเชื่อถือและความปลอดภัย
+  privacyCompliance: ความเป็นส่วนตัวและการปฏิบัติตามกฎ
+  dropshipping: ดรอปชิปและการจัดหาสินค้า
+  seo: SEO
+  storeManagement: จัดการร้าน
+  performance: ประสิทธิภาพ
+  accessibility: การเข้าถึง
+
+trackers:
+  heading: ตัวติดตาม
+  none: ไม่พบในหน้านี้
+  unidentified:
+    one: กำลังระบุตัวติดตามอีก $1 รายการ
+    few: กำลังระบุตัวติดตามอีก $1 รายการ
+    many: กำลังระบุตัวติดตามอีก $1 รายการ
+    other: กำลังระบุตัวติดตามอีก $1 รายการ
+infrastructure:
+  heading: โครงสร้างพื้นฐาน
+products:
+  heading: สินค้า
+  priceRange: ช่วงราคา
+  variants: ตัวเลือกสินค้า
+  newest: ใหม่ล่าสุด
+  newestToday: วันนี้
+  reading: กำลังอ่านแค็ตตาล็อก…
+  unreadable: อ่านแค็ตตาล็อกไม่ได้
+  notPublic: แค็ตตาล็อกของร้านนี้ไม่เปิดเผยต่อสาธารณะ
+  retry: ลองอีกครั้ง
+  export: ส่งออกแค็ตตาล็อกเป็น CSV
+  range: $1 – $2
+  progress: $1 / $2
+  exported: ส่งออกแล้ว $1
+  importFormat: รูปแบบนำเข้าของ Shopify
+  countImportFormat: $1 สินค้า · รูปแบบนำเข้าของ Shopify
+  countExportsFirst: $1 สินค้า · ส่งออก $2 รายการแรก
+bestSellers:
+  heading: สินค้าขายดี
+  showFewer: แสดงน้อยลง
+  showMore: แสดงเพิ่มอีก $1
+themeToggle:
+  toDark: เปลี่ยนเป็นธีมมืด
+  toLight: เปลี่ยนเป็นธีมสว่าง
+terminal:
+  notShopify:
+    code: ไม่ตรงกัน
+    title: ไม่ใช่ร้าน Shopify
+    body: ตรวจเทียบกับแค็ตตาล็อกแล้วไม่พบรายการตรงกัน ไม่มีข้อมูลใดเกี่ยวกับหน้าถูกจัดเก็บ
+    action: สแกนอีกครั้ง
+  cantScan:
+    code: อ่านหน้าไม่ได้
+    title: สแกนหน้านี้ไม่ได้
+    body: หน้าของเบราว์เซอร์ Web Store และ PDF ไม่อนุญาตให้ส่วนขยายเข้าถึง เปิดแท็บหน้าร้านแล้วลองที่นั่น
+  error:
+    code: เครือข่าย
+    title: ติดต่อระบบตรวจจับไม่ได้
+    body: อ่านสัญญาณจากหน้าแล้ว แต่ API ไม่ตอบกลับ ไม่มีข้อมูลใดถูกจัดเก็บ
+    action: ลองอีกครั้ง
+  rateLimited:
+    code: "429"
+    title: โปรดรอสักครู่แล้วลองอีกครั้ง
+    body: มีการสแกนมากเกินไปในช่วงเวลาสั้น ๆ ขีดจำกัดจะรีเซ็ตเอง
+    action: ลองอีกครั้ง
+  needsPermission:
+    code: สิทธิ์
+    title: เปิด Stackpeek บนร้านนี้
+    body: คลิกไอคอน Stackpeek บนแถบเครื่องมือเพื่อสแกนหน้านี้ เบราว์เซอร์อนุญาตการเข้าถึงทีละร้าน แผงจึงทำแทนคุณไม่ได้
+  ours:
+    code: นี่คือเรา
+    title: คุณชี้ตัวตรวจจับกลับมาที่ตัวมันเอง
+    body: ไม่ใช่ Shopify แต่เป็น Rails และ Postgres บนเซิร์ฟเวอร์ DigitalOcean พร้อม analytics beacon หนึ่งรายการ ซึ่งเป็นสคริปต์ของบุคคลที่สามเพียงรายการเดียว เราไม่ยกเว้นตัวเอง
+    action: สแกนอีกครั้ง

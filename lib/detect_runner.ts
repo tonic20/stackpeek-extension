@@ -1,5 +1,6 @@
 import type { DetectResponse } from "./api";
 import { InjectionDeniedError } from "./errors";
+import { uiLanguage } from "./ui_language";
 
 // Sized against the measured completeness curve on spotonfence.com: 61% of the
 // collectable surface exists at 800ms, 79% at 3s, 89% at 8s, and it plateaus at
@@ -49,10 +50,16 @@ export async function runRounds(opts: RunRoundsOptions): Promise<void> {
   async function sendRound(signals: unknown, url: string | undefined, isFinal: boolean): Promise<boolean> {
     let result: DetectResponse;
     try {
+      const language = uiLanguage();
       result = await opts.send({
         install_id: opts.installId,
         url,
         final: isFinal,
+        // Spread rather than `language: uiLanguage()`: an absent API must omit
+        // the key, not send undefined. JSON.stringify drops an undefined value
+        // anyway, but only for an object property -- leaving it explicit here
+        // keeps the intent readable at the call site.
+        ...(language ? { language } : {}),
         ...(signals as Record<string, unknown>),
       });
     } catch (e) {

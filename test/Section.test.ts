@@ -37,6 +37,7 @@ describe("Section", () => {
     const { container } = render(Section, { id: "trackers", heading: "Trackers", count: 3, children: body });
 
     const section = container.querySelector("section.sp-sec")!;
+    expect(section.id).toBe("sp-section-trackers");
     expect(section.getAttribute("aria-labelledby")).toBe("sp-trackers-label");
 
     const summary = section.querySelector(":scope > details > summary")!;

@@ -1,0 +1,137 @@
+formatLocale: ko-KR
+extName: Shopify 테마 및 앱 탐지기 — Stackpeek
+extDescription: 모든 Shopify 스토어의 테마, 앱, 트래커를 즉시 확인하세요. 빠른 CSV 내보내기, 최소 권한, 방문 기록 저장 없음.
+actionTitle: 이 스토어의 테마와 앱 탐지
+
+panel:
+  scanning: 스캔 중…
+  rescan: 이 페이지 다시 스캔
+  privacy: 개인정보 보호
+  held: 계속 $1 표시 중입니다 — 새로 연 목록은 스캔되지 않았습니다.
+theme:
+  heading: 테마
+  headless: 헤드리스 스토어프론트
+  custom: 맞춤형 테마
+  unknown: 알 수 없는 테마
+  customized: 사용자 지정됨
+  free: 무료
+  storeTheme: 스토어 테마
+  forkedFrom: $1에서 파생되어 수정됨.
+  customNote: 이 스토어 전용으로 제작됨 — 카탈로그 일치 항목 없음.
+  headlessNote: 테마를 탐지할 수 없음 — 스토어프론트가 Shopify 테마 계층과 분리되어 있습니다.
+  # The theme's provenance, shown in the section's own corner slot. The API
+  # sends this as an enum ("catalog"/"forked"/"custom"/"headless") and the panel
+  # rendered the raw value, so this one word stayed English in every locale.
+  origin:
+    catalog: 카탈로그
+    forked: 포크
+    custom: 맞춤
+    headless: 헤드리스
+
+apps:
+  heading: 앱
+  unverified: 확인되지 않음
+  unverifiedTitle: 신뢰도가 낮은 지문 일치
+  unverifiedSr: — 신뢰도가 낮은 지문 일치
+  unverifiedNote: 확인되지 않음 — 더 약한 신호로 일치했습니다. 직접 판단할 수 있도록 표시합니다.
+# The server's app-category taxonomy. The detect API sends each app's English
+# category name AND its slug; the panel groups on the slug and looks the label
+# up here, so the group headings translate with the rest of the UI instead of
+# staying English inside an otherwise localized panel.
+#
+# Keys are the slug in camelCase because a Chrome message name cannot contain
+# a hyphen. lib/categories.ts maps slug -> key and falls back to the server's
+# English name for any slug missing here, so a category added after this ships
+# degrades to English rather than rendering a blank heading.
+categories:
+  emailSms: 이메일 & SMS
+  pageBuilder: 페이지 빌더
+  reviews: 리뷰
+  upsell: 업셀
+  subscriptions: 구독
+  sales: 판매
+  marketing: 마케팅
+  storeDesign: 스토어 디자인
+  customerService: 고객 서비스
+  socialMedia: 소셜 미디어
+  analytics: 애널리틱스
+  advertising: 광고
+  discounts: 할인
+  payments: 결제
+  shippingDelivery: 배송 & 배달
+  orders: 주문
+  productManagement: 상품 관리
+  searchNavigation: 검색 & 탐색
+  localization: 현지화
+  loyalty: 로열티
+  trustSecurity: 신뢰 & 보안
+  privacyCompliance: 개인정보 & 규정 준수
+  dropshipping: 드롭시핑 & 소싱
+  seo: SEO
+  storeManagement: 스토어 관리
+  performance: 성능
+  accessibility: 접근성
+
+trackers:
+  heading: 트래커
+  none: 이 페이지에서 탐지되지 않았습니다.
+  unidentified:
+    one: 트래커 $1개를 추가로 식별 중
+    few: 트래커 $1개를 추가로 식별 중
+    many: 트래커 $1개를 추가로 식별 중
+    other: 트래커 $1개를 추가로 식별 중
+infrastructure:
+  heading: 인프라
+products:
+  heading: 제품
+  priceRange: 가격 범위
+  variants: 옵션
+  newest: 최신
+  newestToday: 오늘
+  reading: 카탈로그 읽는 중…
+  unreadable: 카탈로그를 읽을 수 없습니다.
+  notPublic: 이 스토어의 카탈로그는 공개되지 않았습니다.
+  retry: 다시 시도
+  export: 카탈로그 CSV 내보내기
+  range: $1 – $2
+  progress: $1 / $2
+  exported: $1개 내보냄
+  importFormat: Shopify 가져오기 형식
+  countImportFormat: 제품 $1개 · Shopify 가져오기 형식
+  countExportsFirst: 제품 $1개 · 처음 $2개 내보내기
+bestSellers:
+  heading: 베스트셀러
+  showFewer: 적게 표시
+  showMore: $1개 더 표시
+themeToggle:
+  toDark: 어두운 테마로 전환
+  toLight: 밝은 테마로 전환
+terminal:
+  notShopify:
+    code: 일치 없음
+    title: Shopify 스토어가 아닙니다.
+    body: 카탈로그와 대조했지만 일치하지 않았습니다. 페이지에 관한 정보는 저장되지 않았습니다.
+    action: 다시 스캔
+  cantScan:
+    code: 읽을 수 없는 페이지
+    title: 이 페이지를 스캔할 수 없습니다.
+    body: 브라우저 페이지, Web Store, PDF에는 확장 프로그램이 접근할 수 없습니다. 스토어프론트 탭을 열고 다시 시도하세요.
+  error:
+    code: 네트워크
+    title: 탐지기에 연결할 수 없습니다.
+    body: 페이지 신호는 읽었지만 API가 응답하지 않았습니다. 아무것도 저장되지 않았습니다.
+    action: 다시 시도
+  rateLimited:
+    code: "429"
+    title: 잠시 기다린 후 다시 시도하세요.
+    body: 짧은 시간에 너무 많이 스캔했습니다. 한도는 자동으로 초기화됩니다.
+    action: 다시 시도
+  needsPermission:
+    code: 권한
+    title: 이 스토어에서 Stackpeek을 여세요.
+    body: 이 페이지를 스캔하려면 도구 모음의 Stackpeek 아이콘을 클릭하세요. 브라우저는 한 번에 한 스토어에만 접근을 허용하므로 패널이 대신 실행할 수 없습니다.
+  ours:
+    code: 바로 우리입니다
+    title: 탐지기로 탐지기 자체를 가리켰습니다.
+    body: Shopify가 아닙니다. DigitalOcean 서버의 Rails와 Postgres, 그리고 페이지의 유일한 외부 스크립트인 분석 비콘 하나입니다. 우리 자신도 예외로 두지 않습니다.
+    action: 다시 스캔
