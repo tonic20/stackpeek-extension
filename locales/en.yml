@@ -18,7 +18,7 @@ formatLocale: en-US
 # docs/launch-research.md §7.1. They ship in the package, so changing either
 # still means an extension release rather than a store-field edit. Length
 # limits are enforced by test/locales.test.ts.
-extName: Shopify Theme Detector & Apps — Stackpeek
+extName: Shopify Theme Detector & Apps - Stackpeek
 extDescription: Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.
 actionTitle: Detect this store's theme & apps
 

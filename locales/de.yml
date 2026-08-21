@@ -1,6 +1,6 @@
 formatLocale: de-DE
-extName: Shopify-Theme- & App-Detektor — Stackpeek
-extDescription: Erkennt sofort Theme, Apps und Tracker jedes Shopify-Shops. CSV-Export. Schnell, wenige Rechte, speichert nie deinen Verlauf.
+extName: Shopify Theme Detector & Apps - Stackpeek
+extDescription: Erkennt sofort Theme, Apps und Tracker jedes Shopify-Shops. CSV-Export. Wenige Berechtigungen, speichert nie deinen Verlauf.
 actionTitle: Theme und Apps dieses Shops erkennen
 
 panel:
@@ -15,7 +15,7 @@ theme:
   unknown: Unbekanntes Theme
   customized: angepasst
   free: Kostenlos
-  storeTheme: Store-Theme
+  storeTheme: Shop-Theme
   forkedFrom: Von $1 abgeleitet und verändert.
   customNote: Für diesen Shop erstellt — keine Übereinstimmung im Katalog.
   headlessNote: Theme nicht erkennbar — der Storefront ist von Shopifys Theme-Ebene entkoppelt.

@@ -1,6 +1,6 @@
 formatLocale: pt-BR
-extName: Detector de temas e apps Shopify — Stackpeek
-extDescription: Veja na hora tema, apps e rastreadores de qualquer loja Shopify. Exporte CSV. Rápido, poucas permissões e sem guardar histórico.
+extName: Shopify Theme Detector & Apps - Stackpeek
+extDescription: Veja na hora tema, apps e rastreadores de qualquer loja Shopify. Exporte CSV. Rápido, poucas permissões e sem salvar histórico.
 actionTitle: Detectar tema e apps desta loja
 
 panel:

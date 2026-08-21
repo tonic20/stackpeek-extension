@@ -48,7 +48,7 @@ describe("shots i18n", () => {
     expect(typeof injected).toBe("string");
     const messages = JSON.parse(injected as string) as Record<string, Record<string, { message: string }>>;
     expect(messages.en?.trackers_heading?.message).toBe("Trackers");
-    expect(messages.en?.extName?.message).toBe("Shopify Theme Detector & Apps — Stackpeek");
+    expect(messages.en?.extName?.message).toBe("Shopify Theme Detector & Apps - Stackpeek");
 
     const injectedTags = (config.define as Record<string, string>)["import.meta.env.SP_LOCALE_TAGS"];
     expect(JSON.parse(injectedTags as string)).toEqual({

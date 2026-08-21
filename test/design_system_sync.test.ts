@@ -144,7 +144,7 @@ describe("manifest icons", () => {
     const messages = generateChromeMessages(
       parseMessagesText(readFileSync(resolve(__dirname, "../locales/en.yml"), "utf8"), "YAML"),
     );
-    expect(messages.extName?.message).toBe("Shopify Theme Detector & Apps — Stackpeek");
+    expect(messages.extName?.message).toBe("Shopify Theme Detector & Apps - Stackpeek");
     expect(messages.extDescription?.message).toBe(
       "Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.",
     );

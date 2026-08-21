@@ -1,6 +1,6 @@
 {
   "name": "extension",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Stackpeek Shopify theme & app detector extension",
   "private": true,
   "type": "module",

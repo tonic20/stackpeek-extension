@@ -1,6 +1,6 @@
 formatLocale: tr-TR
-extName: Shopify tema ve uygulama dedektörü — Stackpeek
-extDescription: Her Shopify mağazasının temasını, uygulamalarını ve izleyicilerini anında görün. CSV dışa aktarımı, az izin, geçmiş kaydı yok.
+extName: Shopify Theme Detector & Apps - Stackpeek
+extDescription: Her Shopify mağazasının temasını, uygulamalarını ve takip kodlarını anında görün. CSV dışa aktarımı, az izin, geçmiş kaydı yok.
 actionTitle: Bu mağazanın tema ve uygulamalarını algıla
 
 panel:
