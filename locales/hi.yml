@@ -135,3 +135,10 @@ terminal:
     title: आपने डिटेक्टर को उसी की ओर कर दिया।
     body: Shopify नहीं। DigitalOcean सर्वर पर Rails और Postgres — साथ में एक analytics beacon, जो पेज पर एकमात्र तृतीय-पक्ष स्क्रिप्ट है। हम खुद को छूट नहीं देते।
     action: फिर स्कैन करें
+
+report:
+  scanned: $1 को स्कैन किया गया
+  copyMarkdown: Markdown के रूप में कॉपी करें
+  copied: कॉपी हो गया
+  csv: CSV
+  json: JSON

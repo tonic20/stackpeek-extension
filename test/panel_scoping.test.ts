@@ -105,4 +105,15 @@ describe("panel.css is safe for the site to link", () => {
 
     expect(heightOf(".sp-scan", "min-height")).toBe(heightOf(".sp-iconbtn", "height"));
   });
+
+  it("gives translated export labels a full row below the wide breakpoint", () => {
+    const deck = CSS.match(/\.sp-panel \.sp-deck \{([^}]*)\}/)?.[1] ?? "";
+    const copyButton = CSS.match(/\.sp-panel \.sp-deck__btn:first-child \{([^}]*)\}/)?.[1] ?? "";
+
+    expect(deck).toMatch(/flex-wrap:\s*wrap;/);
+    expect(copyButton).toMatch(/flex:\s*1 0 100%;/);
+    expect(CSS).toMatch(
+      /@container \(min-width: 440px\) \{[\s\S]*\.sp-panel \.sp-deck \{ flex-wrap: nowrap; \}[\s\S]*\.sp-panel \.sp-deck__btn:first-child \{ flex: 2; \}/,
+    );
+  });
 });

@@ -135,3 +135,10 @@ terminal:
     title: Anda mengarahkan pendeteksi ke pendeteksi itu sendiri.
     body: Bukan Shopify. Rails dan Postgres di server DigitalOcean — ditambah satu beacon analitik, satu-satunya skrip pihak ketiga di halaman. Kami tidak mengecualikan diri sendiri.
     action: Pindai lagi
+
+report:
+  scanned: Dipindai pada $1
+  copyMarkdown: Salin sebagai Markdown
+  copied: Disalin
+  csv: CSV
+  json: JSON

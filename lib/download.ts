@@ -50,3 +50,15 @@ export function catalogueFilename(
     : "";
   return `${domain.replace(/^www\./, "")}-products${scope}-${day}.csv`;
 }
+
+// The findings report, named the same way the catalogue export is: store,
+// what it holds, the day. `stack` rather than `report` because the file is
+// the store's stack, and a folder of these sorts by store then by date.
+//
+// English and ASCII for the reasons catalogueFilename records above -- this is
+// a durable artifact a merchant may hand to a colleague, and a translated name
+// drags non-ASCII into a filename. The extension is the format, so it is not
+// copy either.
+export function reportFilename(domain: string, date: Date, ext: "csv" | "json" | "md"): string {
+  return `${domain.replace(/^www\./, "")}-stack-${date.toISOString().slice(0, 10)}.${ext}`;
+}

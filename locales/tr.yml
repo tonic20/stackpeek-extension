@@ -1,6 +1,6 @@
 formatLocale: tr-TR
 extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Her Shopify mağazasının temasını, uygulamalarını ve takip kodlarını anında görün. CSV dışa aktarımı, az izin, geçmiş kaydı yok.
+extDescription: "Tek yerde Shopify theme detector ve app detector: tema, uygulamalar ve takip kodları. CSV dışa aktarımı, geçmiş kaydı yok."
 actionTitle: Bu mağazanın tema ve uygulamalarını algıla
 
 panel:
@@ -135,3 +135,10 @@ terminal:
     title: Dedektörü kendisine yönelttiniz.
     body: Shopify değil. Bir DigitalOcean sunucusunda Rails ve Postgres — ayrıca sayfadaki tek üçüncü taraf betiği olan bir analiz işareti. Kendimizi muaf tutmuyoruz.
     action: Yeniden tara
+
+report:
+  scanned: $1 tarihinde tarandı
+  copyMarkdown: Markdown olarak kopyala
+  copied: Kopyalandı
+  csv: CSV
+  json: JSON

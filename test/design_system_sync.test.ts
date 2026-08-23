@@ -146,7 +146,7 @@ describe("manifest icons", () => {
     );
     expect(messages.extName?.message).toBe("Shopify Theme Detector & Apps - Stackpeek");
     expect(messages.extDescription?.message).toBe(
-      "Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.",
+      "Shopify theme detector and app detector in one: any store's theme, apps and trackers. Export to CSV, never records your browsing.",
     );
   });
 });

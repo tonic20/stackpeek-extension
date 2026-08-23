@@ -135,3 +135,10 @@ terminal:
     title: 検出ツール自身を検出しようとしています。
     body: Shopifyではありません。DigitalOcean上のRailsとPostgresに加え、ページ唯一の外部スクリプトである分析ビーコンがあります。自社サイトも例外にしません。
     action: もう一度スキャン
+
+report:
+  scanned: スキャン日 $1
+  copyMarkdown: Markdownとしてコピー
+  copied: コピーしました
+  csv: CSV
+  json: JSON

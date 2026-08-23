@@ -16,6 +16,7 @@
   import { rankCatalogue } from "../../lib/ranking";
   import ProductSummary from "./components/ProductSummary.svelte";
   import BestSellers from "./components/BestSellers.svelte";
+  import ExportDeck from "./components/ExportDeck.svelte";
   import ThemeCard from "./components/ThemeCard.svelte";
   import AppList from "./components/AppList.svelte";
   import Trackers from "./components/Trackers.svelte";
@@ -367,6 +368,22 @@
       <AppList apps={data.apps} />
       <Trackers items={data.pixels} unknownDomainCount={data.unknown_domain_count} />
       <Infrastructure items={data.infrastructure} />
+      <!-- Directly under the findings it exports, and above the catalogue
+           sections, which carry their own export. Below Best sellers this read
+           as an export of those -- the one thing it does not do. Only where a
+           scan settled on a store: a page with no findings has nothing to hand
+           anyone. -->
+      <ExportDeck
+        scan={{
+          domain,
+          scannedAt: new Date(),
+          theme: data.theme,
+          apps: data.apps ?? [],
+          pixels: data.pixels ?? [],
+          infrastructure: data.infrastructure ?? [],
+          unknown_domain_count: data.unknown_domain_count ?? 0,
+        }}
+      />
       <ProductSummary
         {digest}
         state={exportState}

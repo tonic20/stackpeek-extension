@@ -19,7 +19,7 @@ formatLocale: en-US
 # still means an extension release rather than a store-field edit. Length
 # limits are enforced by test/locales.test.ts.
 extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Instantly see any Shopify store's theme, apps and trackers. Export to CSV. Fast, minimal-permission, never records your browsing.
+extDescription: "Shopify theme detector and app detector in one: any store's theme, apps and trackers. Export to CSV, never records your browsing."
 actionTitle: Detect this store's theme & apps
 
 panel:
@@ -186,3 +186,10 @@ terminal:
     title: You pointed the detector at the detector.
     body: Not Shopify. Rails and Postgres on a DigitalOcean box — plus one analytics beacon, the only third-party script on the page. We don't exempt ourselves.
     action: Scan again
+
+report:
+  scanned: Scanned $1
+  copyMarkdown: Copy as Markdown
+  copied: Copied
+  csv: CSV
+  json: JSON

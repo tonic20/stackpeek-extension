@@ -135,3 +135,10 @@ terminal:
     title: Bạn đã hướng trình dò vào chính nó.
     body: Không phải Shopify. Rails và Postgres trên máy chủ DigitalOcean — cùng một beacon phân tích, tập lệnh bên thứ ba duy nhất trên trang. Chúng tôi không tự miễn trừ.
     action: Quét lại
+
+report:
+  scanned: Đã quét vào $1
+  copyMarkdown: Sao chép dạng Markdown
+  copied: Đã sao chép
+  csv: CSV
+  json: JSON

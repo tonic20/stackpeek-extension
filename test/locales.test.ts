@@ -19,6 +19,20 @@ const messagesOf = (file: string) =>
 const placeholdersOf = (message: string) =>
   [...message.matchAll(/(?<!\$)\$(\d+)/g)].map((match) => match[1]).sort();
 
+const REPORT_CORRECTIONS = {
+  "de.yml": { report_scanned: "Analysiert am $1" },
+  "es.yml": { report_scanned: "Analizado el $1" },
+  "fr.yml": { report_scanned: "Analysé le $1" },
+  "hi.yml": { report_scanned: "$1 को स्कैन किया गया" },
+  "id.yml": { report_scanned: "Dipindai pada $1" },
+  "it.yml": { report_scanned: "Analizzato il $1" },
+  "ja.yml": { report_copyMarkdown: "Markdownとしてコピー" },
+  "ko.yml": { report_scanned: "스캔 날짜: $1" },
+  "pt_BR.yml": { report_scanned: "Analisado em $1" },
+  "tr.yml": { report_scanned: "$1 tarihinde tarandı" },
+  "vi.yml": { report_scanned: "Đã quét vào $1" },
+} as const;
+
 describe("locales", () => {
   it("ships at least one locale", () => {
     expect(files.length).toBeGreaterThan(0);
@@ -93,6 +107,17 @@ describe("locales", () => {
       }
     });
   }
+
+  it.each(Object.entries(REPORT_CORRECTIONS))(
+    "%s carries the reviewed report wording",
+    (file, expected) => {
+      const messages = messagesOf(file);
+
+      for (const [key, value] of Object.entries(expected)) {
+        expect(messages[key]?.message, key).toBe(value);
+      }
+    },
+  );
 
   // Dormant until a second locale lands, and deliberately generates NO test
   // case while `en` is the only file -- a parity assertion with nothing to

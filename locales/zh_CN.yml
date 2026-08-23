@@ -135,3 +135,10 @@ terminal:
     title: 你让检测器检测了自己。
     body: 不是 Shopify。它是在 DigitalOcean 服务器上运行的 Rails 和 Postgres，另有一个分析信标，是页面唯一的第三方脚本。我们不会把自己排除在外。
     action: 重新扫描
+
+report:
+  scanned: 扫描于 $1
+  copyMarkdown: 复制为 Markdown
+  copied: 已复制
+  csv: CSV
+  json: JSON

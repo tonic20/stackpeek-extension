@@ -135,3 +135,10 @@ terminal:
     title: คุณชี้ตัวตรวจจับกลับมาที่ตัวมันเอง
     body: ไม่ใช่ Shopify แต่เป็น Rails และ Postgres บนเซิร์ฟเวอร์ DigitalOcean พร้อม analytics beacon หนึ่งรายการ ซึ่งเป็นสคริปต์ของบุคคลที่สามเพียงรายการเดียว เราไม่ยกเว้นตัวเอง
     action: สแกนอีกครั้ง
+
+report:
+  scanned: สแกนเมื่อ $1
+  copyMarkdown: คัดลอกเป็น Markdown
+  copied: คัดลอกแล้ว
+  csv: CSV
+  json: JSON

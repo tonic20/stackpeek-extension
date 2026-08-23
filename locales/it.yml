@@ -1,6 +1,6 @@
 formatLocale: it-IT
 extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Scopri subito tema, app e tracker di qualsiasi negozio Shopify. Esporta in CSV. Rapido, pochi permessi, non salva la cronologia.
+extDescription: "Shopify theme detector e app detector in uno: tema, app e tracker di qualsiasi negozio. Esporta in CSV, non salva la cronologia."
 actionTitle: Rileva tema e app di questo negozio
 
 panel:
@@ -135,3 +135,10 @@ terminal:
     title: Hai puntato il rilevatore verso se stesso.
     body: Non Shopify. Rails e Postgres su un server DigitalOcean, più un beacon di analisi, l’unico script di terze parti nella pagina. Non facciamo eccezioni per noi stessi.
     action: Analizza di nuovo
+
+report:
+  scanned: Analizzato il $1
+  copyMarkdown: Copia come Markdown
+  copied: Copiato
+  csv: CSV
+  json: JSON

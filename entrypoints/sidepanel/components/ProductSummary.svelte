@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CatalogueDigest, ExportState } from "../../../lib/catalogue_types";
   import { EXPORT_CEILING } from "../../../lib/export_limits";
+  import DownloadIcon from "./DownloadIcon.svelte";
   import Section from "./Section.svelte";
   import { i18n } from "#i18n";
   import { number as n, money, daysAgo } from "../../../lib/format";
@@ -116,7 +117,7 @@
         aria-busy={state === "fetching"}
         onclick={onexport}
       >
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.5 11.5 7M2.5 13h11"></path></svg>
+        <DownloadIcon />
         {i18n.t("products.export")}
       </button>
     {/if}

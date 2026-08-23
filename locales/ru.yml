@@ -1,6 +1,6 @@
 formatLocale: ru-RU
 extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Мгновенно показывает тему, приложения и трекеры любого магазина Shopify. Экспорт CSV, минимум разрешений, история не сохраняется.
+extDescription: "Shopify theme detector и app detector в одном: тема, приложения и трекеры любого магазина. Экспорт CSV, история не сохраняется."
 actionTitle: Определить тему и приложения магазина
 
 panel:
@@ -135,3 +135,10 @@ terminal:
     title: Вы направили детектор на сам детектор.
     body: Не Shopify. Rails и Postgres на сервере DigitalOcean, а ещё один аналитический маяк — единственный сторонний скрипт на странице. Для себя исключений не делаем.
     action: Сканировать снова
+
+report:
+  scanned: Просканировано $1
+  copyMarkdown: Копировать как Markdown
+  copied: Скопировано
+  csv: CSV
+  json: JSON

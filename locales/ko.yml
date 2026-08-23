@@ -135,3 +135,10 @@ terminal:
     title: 탐지기로 탐지기 자체를 가리켰습니다.
     body: Shopify가 아닙니다. DigitalOcean 서버의 Rails와 Postgres, 그리고 페이지의 유일한 외부 스크립트인 분석 비콘 하나입니다. 우리 자신도 예외로 두지 않습니다.
     action: 다시 스캔
+
+report:
+  scanned: "스캔 날짜: $1"
+  copyMarkdown: Markdown으로 복사
+  copied: 복사됨
+  csv: CSV
+  json: JSON

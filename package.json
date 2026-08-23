@@ -1,6 +1,6 @@
 {
   "name": "extension",
-  "version": "0.5.1",
+  "version": "0.6.1",
   "description": "Stackpeek Shopify theme & app detector extension",
   "private": true,
   "type": "module",
@@ -40,7 +40,7 @@
     "svelte-check": "^4.7.5",
     "typescript": "^5.6.3",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10",
+    "vitest": "^4.1.11",
     "web-ext": "^10.5.0",
     "wxt": "^0.21.4"
   }

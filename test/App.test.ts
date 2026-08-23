@@ -36,6 +36,47 @@ describe("App state machine", () => {
     expect(await screen.findByText(/2 more/)).toBeTruthy();
   });
 
+  it("offers the export deck once a scan has something to export", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true,
+      theme: { name: "Dawn", origin: "catalog", version: "15.3.0", price: null, creator: null },
+      apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    render(App, { props: { runner: fakeRunner, autostart: true } });
+
+    expect(await screen.findByRole("button", { name: "Copy as Markdown" })).toBeTruthy();
+  });
+
+  // The deck exports the findings -- theme, apps, trackers, infrastructure --
+  // not the catalogue. Sitting below Best sellers it read as an export of
+  // those, which is the one thing it does not do.
+  it("puts the export deck with the findings, above the product sections", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true,
+      theme: { name: "Dawn", origin: "catalog", version: "15.3.0", price: null, creator: null },
+      apps: [], pixels: [],
+      infrastructure: [{ name: "Cloudflare", category: "CDN" }],
+      unknown_domain_count: 0,
+    });
+    const { container } = render(App, { props: { runner: fakeRunner, autostart: true } });
+    await screen.findByRole("button", { name: "Copy as Markdown" });
+
+    const order = [...container.querySelectorAll("#sp-section-infrastructure, .sp-deck, #sp-section-products")]
+      .map((el) => el.id || el.className.split(" ")[0]);
+
+    expect(order).toEqual(["sp-section-infrastructure", "sp-deck", "sp-section-products"]);
+  });
+
+  // Nothing was detected, so there is nothing to hand anyone. Three buttons
+  // over a "Not a Shopify store" panel would offer to export that verdict.
+  it("hides the export deck when the page is not a store", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({ is_shopify: false, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
+    render(App, { props: { runner: fakeRunner, autostart: true } });
+    await screen.findByText(/Not a Shopify store/i);
+
+    expect(screen.queryByRole("button", { name: "Copy as Markdown" })).toBeNull();
+  });
+
   it("renders the not-shopify state", async () => {
     vi.spyOn(api, "postDetect").mockResolvedValue({ is_shopify: false, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
     render(App, { props: { runner: fakeRunner, autostart: true } });
