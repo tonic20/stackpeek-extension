@@ -87,6 +87,23 @@ describe("shots i18n", () => {
     }
   });
 
+  it("skips manifest-only catalogs but still rejects a UI catalog without a formatting tag", () => {
+    const directory = mkdtempSync(join(tmpdir(), "stackpeek-shot-locales-"));
+    try {
+      writeFileSync(join(directory, "en.yml"), "formatLocale: en-US\nlabel: English\n");
+      writeFileSync(join(directory, "es_419.yml"), 'extName: "Stackpeek"\nextDescription: "Resumen"\n');
+      writeFileSync(join(directory, "fil.yml"), 'extName: "Stackpeek"\nextDescription: "Buod"\n');
+
+      expect(Object.keys(loadHarnessMessages(directory).messages)).toEqual(["en"]);
+
+      writeFileSync(join(directory, "fil.yml"), 'extName: "Stackpeek"\nextDescription: "Buod"\nlabel: Filipino\n');
+
+      expect(() => loadHarnessMessages(directory)).toThrow("fil.yml has no formatLocale message");
+    } finally {
+      rmSync(directory, { recursive: true });
+    }
+  });
+
   it("keeps the API base define, which the panel's fetches depend on", () => {
     expect((config.define as Record<string, string>)["import.meta.env.WXT_API_BASE"]).toBe('""');
   });

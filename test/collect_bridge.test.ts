@@ -37,6 +37,24 @@ describe("collectFromActiveTab", () => {
     expect((signals as { script_urls: string[] }).script_urls).toContain("https://cdn.shopify.com/a.js");
   });
 
+  // The panel header names the store being scanned, and the injection can take
+  // seconds. The origin is known the moment the tab is, so it is handed over
+  // then -- already truncated, exactly as the resolved value is.
+  it("reports the tab's origin before injecting into it", async () => {
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 7, url: "https://demo.example/products/foo?discount=SAVE10" },
+    ]);
+    const seen: (string | undefined)[] = [];
+    (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      seen.push("injected");
+      return [{ result: null }];
+    });
+
+    await collectFromActiveTab((url) => seen.push(url));
+
+    expect(seen).toEqual(["https://demo.example", "injected"]);
+  });
+
   // The privacy-relevant case: a tab URL routinely carries search terms,
   // discount codes, UTM parameters and cart tokens in its path and query
   // string. /privacy promises only "the store's domain" leaves the browser,

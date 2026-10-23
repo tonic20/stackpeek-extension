@@ -19,6 +19,16 @@ const signals = { shopify: { shop: "demo.myshopify.com", theme: { theme_store_id
   script_urls: ["https://cdn.shopify.com/a.js", "https://cdn.judge.me/loader.js"], window_globals: [], meta_tags: [] };
 const fakeRunner = async () => ({ signals, url: "https://demo.example/" });
 
+// For tests that count sends or hold one open. A test that leaves the default
+// round schedule running (ROUND_DELAYS_MS: up to 8 s) keeps sending after it
+// has unmounted, and those late rounds land on whatever postDetect spy the
+// current test installed. Under a loaded run they arrive inside another
+// test's window often enough to fail it, so these tests scan a host of their
+// own and look only at the sends for it.
+const sendsFor = (send: { mock: { calls: unknown[][] } }, host: string) =>
+  send.mock.calls.filter(([payload]) => (payload as { url?: string }).url === `https://${host}/`).length;
+const runnerFor = (host: string) => async () => ({ signals, url: `https://${host}/` });
+
 describe("App state machine", () => {
   it("renders apps and theme on a successful shopify result", async () => {
     vi.spyOn(api, "postDetect").mockResolvedValue({
@@ -148,6 +158,40 @@ describe("App state machine", () => {
     expect(await screen.findByText("demo.example")).toBeTruthy();
   });
 
+  // A rescan used to leave the previous store's name over the next store's
+  // skeleton until the first result arrived -- seconds, on a slow page.
+  it("names the store being scanned as soon as the collector knows it", async () => {
+    vi.spyOn(api, "postDetect").mockImplementation(() => new Promise<DetectResponse>(() => {}));
+    const runner = (onUrl?: (url: string | undefined) => void) => {
+      onUrl?.("https://next.example");
+      return new Promise<{ signals: unknown; url: string | undefined }>(() => {});
+    };
+    const { container } = render(App, { props: { runner, autostart: true } });
+
+    await vi.waitFor(() => expect(container.querySelector(".sp-hd__domain")!.textContent).toBe("next.example"));
+    expect(container.querySelector(".sp-skel")).toBeTruthy();
+  });
+
+  // Until then the honest header is an empty one: the last store's name above a
+  // skeleton says the skeleton is that store's.
+  it("stops naming the previous store when a rescan starts", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    let scans = 0;
+    const runner = async () => {
+      if (scans++ === 0) return fakeRunner();
+      return new Promise<{ signals: unknown; url: string | undefined }>(() => {});
+    };
+    const { container } = render(App, { props: { runner, autostart: true, delays: [0] } });
+    await screen.findByText("demo.example");
+
+    await fireEvent.click(await screen.findByRole("button", { name: /rescan this page/i }));
+
+    expect(container.querySelector(".sp-skel")).toBeTruthy();
+    expect(container.querySelector(".sp-hd__domain")!.textContent).toBe("");
+  });
+
   // The header is persistent chrome -- .sp-hd is position: sticky -- so it must
   // not appear only once a result has arrived.
   it("renders the header before any scan has run", () => {
@@ -174,31 +218,94 @@ describe("App state machine", () => {
     await vi.waitFor(() => expect(send.mock.calls.length).toBeGreaterThan(before));
   });
 
+  // The button leaves the DOM while the scan runs (the guard below). Pressed
+  // from the keyboard, that dropped focus to <body>, and the next Tab started
+  // over from the top of the panel.
+  it("keeps keyboard focus with the rescan control through a rescan", async () => {
+    let resolveSend!: (value: DetectResponse) => void;
+    let calls = 0;
+    vi.spyOn(api, "postDetect").mockImplementation((payload) => {
+      if ((payload as { url?: string }).url !== "https://focus.example/") return new Promise(() => {});
+      if (calls++ === 0) return Promise.resolve({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
+      return new Promise<DetectResponse>((resolve) => { resolveSend = resolve; });
+    });
+    const { container } = render(App, { props: { runner: runnerFor("focus.example"), autostart: true, delays: [0] } });
+    const button = await screen.findByRole("button", { name: /rescan this page/i });
+
+    button.focus();
+    await fireEvent.click(button);
+
+    await vi.waitFor(() => expect(document.activeElement).toBe(container.querySelector(".sp-scan")));
+    resolveSend({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
+    await vi.waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /rescan this page/i })));
+  });
+
+  // A scan the user did not start from the header must not pull focus there.
+  it("leaves focus alone for a scan started any other way", async () => {
+    const send = vi.spyOn(api, "postDetect").mockResolvedValue({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
+    let fire!: () => void;
+    const watch = (onChange: () => void) => { fire = onChange; return { stop: () => {} }; };
+    render(App, { props: { runner: runnerFor("unfocused.example"), autostart: true, delays: [0], watch } });
+    const toggle = await screen.findByRole("button", { name: /switch to .* theme/i });
+    await screen.findByRole("button", { name: /rescan this page/i });
+
+    toggle.focus();
+    fire();
+    await vi.waitFor(() => expect(sendsFor(send, "unfocused.example")).toBe(2));
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /rescan this page/i })).toBeTruthy());
+
+    expect(document.activeElement).toBe(toggle);
+  });
+
   // Pins the re-entrancy guard. While a round is in flight the header shows
   // .sp-scan in the rescan button's place (D5), so there is no control to
   // click: an absent button cannot start a second concurrent runRounds() loop
   // racing the first over shared state (status, data, domain, refining).
   it("replaces rescan with the scan indicator while a scan is in flight", async () => {
     let resolveSend!: (value: DetectResponse) => void;
+    // Captures only this test's own send: a leftover round from another test
+    // would otherwise overwrite resolveSend with a promise nobody awaits.
     const send = vi.spyOn(api, "postDetect").mockImplementation(
-      () => new Promise<DetectResponse>((resolve) => { resolveSend = resolve; }),
+      (payload) => new Promise<DetectResponse>((resolve) => {
+        if ((payload as { url?: string }).url === "https://inflight.example/") resolveSend = resolve;
+      }),
     );
-    // mock.calls persists across tests (nothing here resets it), so compare
-    // against a baseline rather than asserting "has been called" outright.
-    const before = send.mock.calls.length;
-    const { container } = render(App, { props: { runner: fakeRunner, autostart: true, delays: [0] } });
+    const { container } = render(App, { props: { runner: runnerFor("inflight.example"), autostart: true, delays: [0] } });
 
     // Wait for the in-flight send itself, not just the header: status flips to
     // "loading" synchronously on mount, before postDetect is ever called, so
     // asserting on the markup alone would race ahead of resolveSend being
     // assigned.
-    await vi.waitFor(() => expect(send.mock.calls.length).toBeGreaterThan(before));
+    await vi.waitFor(() => expect(sendsFor(send, "inflight.example")).toBe(1));
     expect(container.querySelector(".sp-scan")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /rescan this page/i })).toBeNull();
 
     resolveSend({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
 
     await vi.waitFor(() => expect(screen.getByRole("button", { name: /rescan this page/i })).toBeTruthy());
+  });
+
+  // The header's "Scanning…" stays up through the later rounds by design (D5),
+  // and must come down once the last one settles -- here the second round,
+  // which collects the same signals as the first and is sent as final. A
+  // screenshot taken between the two shows the spinner over a finished-looking
+  // result; this pins that it does not stay there.
+  it.each([
+    ["a result", { is_shopify: true, theme: { name: "Dawn", origin: "catalog" }, apps: [], pixels: [], unknown_domain_count: 0 }, ".sp-theme"],
+    ["the not-Shopify state", { is_shopify: false, theme: null, apps: [], pixels: [], unknown_domain_count: 0 }, ".sp-state"],
+  ])("takes the scan indicator down once the last round settles over %s", async (_name, response, body) => {
+    const send = vi.spyOn(api, "postDetect").mockResolvedValue(response as DetectResponse);
+    const { container } = render(App, { props: { runner: runnerFor("settles.example"), autostart: true, delays: [0, 30] } });
+
+    await vi.waitFor(() => expect(container.querySelector(body)).toBeTruthy());
+    await vi.waitFor(() => expect(container.querySelector(".sp-scan")).toBeNull());
+
+    expect(screen.getByRole("button", { name: /rescan this page/i })).toBeTruthy();
+    const finals = send.mock.calls
+      .map(([payload]) => payload as { url?: string; final?: boolean })
+      .filter((payload) => payload.url === "https://settles.example/")
+      .map((payload) => payload.final);
+    expect(finals).toEqual([false, true]);
   });
 
   // status flips to "result" as soon as the first round's onUpdate fires, but
@@ -250,12 +357,115 @@ describe("App state machine", () => {
     expect(await screen.findByText(/slow down/i)).toBeTruthy();
   });
 
+  // The API has just said no. A Retry that works at once, or a tab switch
+  // that goes straight back to it, spends more of a limit that is already
+  // spent -- up to four requests a scan.
+  it("holds every rescan back through a rate-limit wait", async () => {
+    const send = vi.spyOn(api, "postDetect").mockRejectedValue(new api.RateLimitError("rate limited", 30_000));
+    let fire!: () => void;
+    const watch = (onChange: () => void) => { fire = onChange; return { stop: () => {} }; };
+    render(App, { props: { runner: runnerFor("wait.example"), autostart: true, delays: [0], watch } });
+    await screen.findByText("429");
+
+    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /rescan this page/i })).toBeDisabled();
+    fire(); fire(); fire();
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(sendsFor(send, "wait.example")).toBe(1);
+  });
+
+  // Whatever is on screen once the wait ends describes a page the user has
+  // left, so the switch that arrived during it is not dropped -- it runs, once.
+  it("runs one deferred rescan when the wait is over", async () => {
+    let refused = false;
+    const send = vi.spyOn(api, "postDetect").mockImplementation(async () => {
+      if (!refused) { refused = true; throw new api.RateLimitError("rate limited", 150); }
+      return { is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 };
+    });
+    let fire!: () => void;
+    const watch = (onChange: () => void) => { fire = onChange; return { stop: () => {} }; };
+    render(App, { props: { runner: runnerFor("deferred.example"), autostart: true, delays: [0], watch } });
+    await screen.findByText("429");
+
+    fire(); fire();
+
+    expect(await screen.findByText("deferred.example")).toBeTruthy();
+    expect(sendsFor(send, "deferred.example")).toBe(2);
+  });
+
+  // Nothing asked for a scan during the wait, so nothing runs at its end: the
+  // user decides when to press Retry.
+  it("re-enables Retry when the wait is over, without scanning by itself", async () => {
+    const send = vi.spyOn(api, "postDetect").mockRejectedValue(new api.RateLimitError("rate limited", 100));
+    render(App, { props: { runner: runnerFor("idle.example"), autostart: true, delays: [0] } });
+    await screen.findByText("429");
+
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: "Retry" })).not.toBeDisabled());
+
+    expect(sendsFor(send, "idle.example")).toBe(1);
+  });
+
+  // runRounds swallows a refusal on a later round to keep the result on screen,
+  // so the panel never shows the 429 state -- but the limit is just as spent,
+  // and the next tab switch must not go straight back to it.
+  it("waits out a 429 on a later round too, with the result left on screen", async () => {
+    const first = { is_shopify: true, theme: { name: "Dawn", origin: "catalog" }, apps: [], pixels: [], unknown_domain_count: 0 };
+    let call = 0;
+    const send = vi.spyOn(api, "postDetect").mockImplementation(async () => {
+      if (call++ === 0) return first as any;
+      throw new api.RateLimitError("rate limited", 30_000);
+    });
+    let round = 0;
+    const growingRunner = async () => ({
+      signals: { ...signals, script_urls: round++ === 0 ? ["https://a.example/x.js"] : ["https://a.example/x.js", "https://b.example/y.js"] },
+      url: "https://later.example/",
+    });
+    let fire!: () => void;
+    const watch = (onChange: () => void) => { fire = onChange; return { stop: () => {} }; };
+    render(App, { props: { runner: growingRunner, autostart: true, delays: [0, 0], watch } });
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /rescan this page/i })).toBeDisabled());
+
+    fire();
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(screen.getByText("Dawn")).toBeTruthy();
+    expect(sendsFor(send, "later.example")).toBe(2);
+  });
+
   it("renders a network failure as the error state", async () => {
-    vi.spyOn(api, "postDetect").mockRejectedValue(new api.ApiError("detect failed: 500"));
+    vi.spyOn(api, "postDetect").mockRejectedValue(new api.NetworkError("TypeError: Failed to fetch"));
     render(App, { props: { runner: fakeRunner, autostart: true } });
 
     expect(await screen.findByText("network")).toBeTruthy();
     expect(await screen.findByText(/Couldn't reach the detector/)).toBeTruthy();
+    expect(screen.getByText(/Check your connection/)).toBeTruthy();
+  });
+
+  // Each failure says the thing its user can act on. One shared "Couldn't
+  // reach the detector" sent someone whose wifi had dropped and someone
+  // looking at our own 500 to check the same connection.
+  it.each([
+    [new api.OfflineError("TypeError: Failed to fetch"), "offline", "You're offline."],
+    [new api.TimeoutError("detect timed out"), "timeout", "The detector took too long."],
+    [new api.ServerError("detect failed: 502"), "server", "The detector had a problem."],
+  ])("tells %s apart from an unreachable detector", async (error, code, title) => {
+    vi.spyOn(api, "postDetect").mockRejectedValue(error);
+    render(App, { props: { runner: fakeRunner, autostart: true } });
+
+    expect(await screen.findByText(code)).toBeTruthy();
+    expect(screen.getByText(title)).toBeTruthy();
+    expect(screen.queryByText(/Couldn't reach the detector/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  // A fault of ours before any request was made is not evidence of anything
+  // about the detector, so it keeps the wording it always had.
+  it("keeps the network wording for a failure that is not an API one", async () => {
+    vi.spyOn(api, "postDetect").mockRejectedValue(new Error("something else"));
+    render(App, { props: { runner: fakeRunner, autostart: true } });
+
+    expect(await screen.findByText("network")).toBeTruthy();
   });
 
   // Nothing about the page will change by asking again, so the header offers
@@ -302,6 +512,31 @@ describe("App state machine", () => {
     expect(screen.queryByText("demo.example")).toBeNull();
   });
 
+  // The whole point of the state is the toolbar click it asks for. The watcher
+  // reports that click (lib/tab_watcher.ts), and the panel has to take it as a
+  // reason to scan again -- not leave the instruction standing under the
+  // access it just received.
+  it("scans again once the toolbar click has granted access", async () => {
+    vi.spyOn(api, "postDetect").mockResolvedValue({
+      is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+    });
+    let granted = false;
+    const runner = async () => {
+      if (!granted) throw new InjectionDeniedError("denied");
+      return fakeRunner();
+    };
+    let clicked!: () => void;
+    const watch = (onChange: () => void) => { clicked = onChange; return { stop: () => {} }; };
+    render(App, { props: { runner, autostart: true, delays: [0], watch } });
+    await screen.findByText("Open Stackpeek on this store.");
+
+    granted = true;
+    clicked();
+
+    expect(await screen.findByText("demo.example")).toBeTruthy();
+    expect(screen.queryByText("Open Stackpeek on this store.")).toBeNull();
+  });
+
   // Same reasoning as cant_scan: the header must not offer a control that
   // cannot succeed.
   it("hides the header's rescan button when access was refused", async () => {
@@ -322,7 +557,7 @@ describe("App state machine", () => {
     expect(await screen.findByText("None detected on this page.")).toBeTruthy();
   });
 
-  it("footers the panel with the privacy link, the theme toggle and the manifest's version", async () => {
+  it("footers the panel with the theme toggle and the manifest's version, and no privacy link", async () => {
     stubBrowser({
       ...(globalThis.chrome ?? {}),
       runtime: { getManifest: () => ({ version: "4.5.6" }) },
@@ -330,12 +565,59 @@ describe("App state machine", () => {
     });
     const { container } = render(App, { props: { runner: fakeRunner, autostart: false } });
 
-    const link = screen.getByRole("link", { name: "Privacy" });
-    expect(link.getAttribute("href")).toBe("https://stackpeek.app/privacy");
+    expect(screen.queryByRole("link", { name: "Privacy" })).toBeNull();
     expect(screen.getByRole("button", { name: /switch to .* theme/i })).toBeTruthy();
     expect(container.querySelector(".sp-ft__v")!.textContent).toBe("v4.5.6");
 
     stubBrowser({});
+  });
+
+  // The footer is the only way back to the product from inside the panel.
+  it("footers the panel with a review link, a feedback address and the site", () => {
+    stubBrowser({
+      ...(globalThis.chrome ?? {}),
+      runtime: { id: "vitest", getManifest: () => ({ version: "4.5.6" }) },
+      storage: { local: { get: async () => ({}), set: async () => {} } },
+    });
+    const { container } = render(App, { props: { runner: fakeRunner, autostart: false } });
+    const footer = container.querySelector(".sp-ft") as HTMLElement;
+
+    expect(screen.getByRole("link", { name: "Rate us" }).getAttribute("href"))
+      .toBe("https://chromewebstore.google.com/detail/membonhdocoehieifbkfkdjmpappflan/reviews");
+    expect(screen.getByRole("link", { name: "Feedback" }).getAttribute("href")).toBe("mailto:hello@stackpeek.app");
+    // Named for where it goes, with the visible text still in the name.
+    expect(screen.getByRole("link", { name: "stackpeek.app v4.5.6" }).getAttribute("href")).toBe("https://stackpeek.app");
+    // Still one row of three: the links travel together, then the toggle, then
+    // the version.
+    expect([...footer.children].map((el) => el.tagName)).toEqual(["SPAN", "BUTTON", "A"]);
+
+    stubBrowser({});
+  });
+
+  // A plain new tab fires the tab watcher, and the rescan that followed
+  // replaced the result with a permission error about our own site or a store
+  // listing. Held like the theme and app links instead.
+  it("opens the footer's pages as held tabs, so the result stays on screen", async () => {
+    const create = vi.fn(async (_props: { url: string; active: boolean }) => ({ id: 31 }));
+    stubBrowser({
+      ...(globalThis.chrome ?? {}),
+      runtime: { id: "vitest", getManifest: () => ({ version: "4.5.6" }) },
+      tabs: { create },
+      storage: { local: { get: async () => ({}), set: async () => {} } },
+    });
+    try {
+      render(App, { props: { runner: fakeRunner, autostart: false, watch: () => ({ stop: () => {} }) } });
+
+      await fireEvent.click(screen.getByRole("link", { name: "Rate us" }), { button: 0 });
+      await fireEvent.click(screen.getByRole("link", { name: "stackpeek.app v4.5.6" }), { button: 0 });
+
+      expect(create.mock.calls.map(([props]) => props.url)).toEqual([
+        "https://chromewebstore.google.com/detail/membonhdocoehieifbkfkdjmpappflan/reviews",
+        "https://stackpeek.app/",
+      ]);
+    } finally {
+      stubBrowser({});
+    }
   });
 
   it("rescans when the tab moves on", async () => {
@@ -363,22 +645,23 @@ describe("App state machine", () => {
   it("queues a tab change that arrives mid-scan instead of racing the run", async () => {
     let resolveSend!: (value: DetectResponse) => void;
     const send = vi.spyOn(api, "postDetect").mockImplementation(
-      () => new Promise<DetectResponse>((resolve) => { resolveSend = resolve; }),
+      (payload) => new Promise<DetectResponse>((resolve) => {
+        if ((payload as { url?: string }).url === "https://queued.example/") resolveSend = resolve;
+      }),
     );
     let fire!: () => void;
     const watch = (onChange: () => void) => { fire = onChange; return { stop: () => {} }; };
-    const before = send.mock.calls.length;
-    render(App, { props: { runner: fakeRunner, autostart: true, delays: [0], watch } });
-    await vi.waitFor(() => expect(send.mock.calls.length).toBe(before + 1));
+    render(App, { props: { runner: runnerFor("queued.example"), autostart: true, delays: [0], watch } });
+    await vi.waitFor(() => expect(sendsFor(send, "queued.example")).toBe(1));
 
     // Three changes while the first scan is still in flight.
     fire(); fire(); fire();
-    expect(send.mock.calls.length).toBe(before + 1);
+    expect(sendsFor(send, "queued.example")).toBe(1);
 
     resolveSend({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
 
     // Exactly one further scan, however many changes arrived.
-    await vi.waitFor(() => expect(send.mock.calls.length).toBe(before + 2));
+    await vi.waitFor(() => expect(sendsFor(send, "queued.example")).toBe(2));
   });
 
   // Following one of the panel's own theme/app links used to replace the store
@@ -921,5 +1204,288 @@ describe("App state machine", () => {
     expect(container.querySelector(".sp-panel > .sp-hd")).toBeTruthy();
     expect(container.querySelector(".sp-panel > .sp-body")).toBeTruthy();
     expect(container.querySelector(".sp-panel > .sp-ft")).toBeTruthy();
+  });
+
+  // A stand-in for lib/host_access.ts, whose real browser calls are covered in
+  // test/host_access.test.ts.
+  const fakeAccess = (initial: boolean) => {
+    let granted = initial;
+    let notify: (g: boolean) => void = () => {};
+    const access = {
+      has: vi.fn(async () => granted),
+      request: vi.fn(async () => { granted = true; return true; }),
+      remove: vi.fn(async () => { granted = false; return true; }),
+      watch: vi.fn((cb: (g: boolean) => void) => { notify = cb; return { stop: () => {} }; }),
+      blocksAutoScan: vi.fn(async () => false),
+    };
+    return { access, grantElsewhere: () => { granted = true; notify(true); } };
+  };
+
+  describe("auto-scan", () => {
+    // Outside an extension there is no permissions API, and a switch that
+    // cannot work is worse than none.
+    it("offers no switch where access cannot be asked for", () => {
+      render(App, { props: { runner: fakeRunner, autostart: false } });
+
+      expect(screen.queryByRole("switch")).toBeNull();
+    });
+
+    it("offers the switch off, with what it means, until it is turned on", async () => {
+      const { access } = fakeAccess(false);
+      render(App, { props: { runner: fakeRunner, autostart: false, access } });
+
+      const toggle = await screen.findByRole("switch", { name: "Scan automatically as I switch tabs" });
+      expect(toggle.getAttribute("aria-checked")).toBe("false");
+      expect(screen.getByText(/Needs access to all sites/)).toBeTruthy();
+
+      await fireEvent.click(toggle);
+
+      // Inside the click, not after something it awaited: the gesture ends there.
+      expect(access.request).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+      expect(screen.queryByText(/Needs access to all sites/)).toBeNull();
+    });
+
+    it("hands the access back when turned off", async () => {
+      const { access } = fakeAccess(true);
+      render(App, { props: { runner: fakeRunner, autostart: false, access } });
+      const toggle = await screen.findByRole("switch");
+      await vi.waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+
+      await fireEvent.click(toggle);
+
+      expect(access.remove).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("false"));
+    });
+
+    // The one-click fix next to "click the icon", and only once on screen: the
+    // row above the footer steps aside while the state is offering it.
+    it("offers the switch beside needs_permission, and scans once it is on", async () => {
+      vi.spyOn(api, "postDetect").mockResolvedValue({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
+      const { access } = fakeAccess(false);
+      let granted = false;
+      const runner = async () => {
+        if (!granted) throw new InjectionDeniedError("denied");
+        return runnerFor("granted.example")();
+      };
+      const { container } = render(App, { props: { runner, autostart: true, delays: [0], access } });
+      await screen.findByText("Open Stackpeek on this store.");
+      await screen.findByText("Or scan without clicking:");
+
+      const switches = screen.getAllByRole("switch");
+      expect(switches).toHaveLength(1);
+      expect(container.querySelector(".sp-state")!.contains(switches[0]!)).toBe(true);
+
+      granted = true;
+      await fireEvent.click(switches[0]!);
+
+      expect(await screen.findByText("granted.example")).toBeTruthy();
+    });
+
+    // Chrome's site-access menu, Firefox's Permissions tab, or Chrome firing
+    // onAdded for the grant the switch itself just made: the answer changed,
+    // and needs_permission is now wrong. Exactly one scan, however many
+    // routes report the same grant.
+    it("scans once when access arrives from anywhere while needs_permission is up", async () => {
+      const send = vi.spyOn(api, "postDetect").mockResolvedValue({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 });
+      const { access, grantElsewhere } = fakeAccess(false);
+      let granted = false;
+      const runner = async () => {
+        if (!granted) throw new InjectionDeniedError("denied");
+        return runnerFor("elsewhere.example")();
+      };
+      render(App, { props: { runner, autostart: true, delays: [0], access } });
+      await screen.findByText("Open Stackpeek on this store.");
+
+      granted = true;
+      grantElsewhere();
+      grantElsewhere();
+
+      expect(await screen.findByText("elsewhere.example")).toBeTruthy();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(sendsFor(send, "elsewhere.example")).toBe(1);
+    });
+  });
+
+  describe("auto-scan offer", () => {
+    const shopify = { is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 };
+    const fakeOffer = (pending: boolean) => ({ pending: vi.fn(async () => pending), close: vi.fn() });
+
+    it("offers auto-scan once beside the first result, in place of the switch", async () => {
+      vi.spyOn(api, "postDetect").mockResolvedValue(shopify);
+      const { access } = fakeAccess(false);
+      const offer = fakeOffer(true);
+      render(App, { props: { runner: runnerFor("offer.example"), autostart: true, delays: [0], access, offer } });
+
+      const accept = await screen.findByRole("button", { name: "Turn on" });
+      expect(screen.queryByRole("switch")).toBeNull();
+
+      await fireEvent.click(accept);
+
+      // Inside the click, not after something it awaited: the gesture ends there.
+      expect(access.request).toHaveBeenCalledOnce();
+      expect(offer.close).toHaveBeenCalledOnce();
+      expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull();
+      await vi.waitFor(() => expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("true"));
+    });
+
+    it("closes for good on No thanks, and leaves the switch", async () => {
+      vi.spyOn(api, "postDetect").mockResolvedValue(shopify);
+      const { access } = fakeAccess(false);
+      const offer = fakeOffer(true);
+      render(App, { props: { runner: runnerFor("later.example"), autostart: true, delays: [0], access, offer } });
+
+      await fireEvent.click(await screen.findByRole("button", { name: "No thanks" }));
+
+      expect(access.request).not.toHaveBeenCalled();
+      expect(offer.close).toHaveBeenCalledOnce();
+      expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull();
+      expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("false");
+    });
+
+    it("stays away once answered, and while auto-scan is already on", async () => {
+      vi.spyOn(api, "postDetect").mockResolvedValue(shopify);
+      const answered = render(App, {
+        props: { runner: runnerFor("answered.example"), autostart: true, delays: [0], access: fakeAccess(false).access, offer: fakeOffer(false) },
+      });
+      await screen.findByText("answered.example");
+      expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull();
+      answered.unmount();
+
+      render(App, {
+        props: { runner: runnerFor("on.example"), autostart: true, delays: [0], access: fakeAccess(true).access, offer: fakeOffer(true) },
+      });
+      await screen.findByText("on.example");
+      expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull();
+    });
+  });
+
+  const fakeShortcut = (initial: string, canToggle = false) => {
+    let key = initial;
+    let notify = () => {};
+    const shortcut = {
+      read: vi.fn(async () => key),
+      canToggle,
+      setEnabled: vi.fn(async (on: boolean) => { key = on ? "Alt+Shift+S" : ""; }),
+      watch: vi.fn((cb: () => void) => { notify = cb; return { stop: () => {} }; }),
+    };
+    return { shortcut, rebind: (k: string) => { key = k; notify(); } };
+  };
+
+  describe("keyboard shortcut", () => {
+    it("names the bound shortcut beside the toolbar instruction", async () => {
+      const runner = async () => { throw new InjectionDeniedError("denied"); };
+      render(App, { props: { runner, autostart: true, delays: [0], shortcut: fakeShortcut("Alt+Shift+S").shortcut } });
+
+      expect(await screen.findByText("The shortcut Alt+Shift+S does the same.")).toBeTruthy();
+    });
+
+    it("shows the key below the auto-scan switch, with Chrome's shortcuts page a click away", async () => {
+      const { access } = fakeAccess(false);
+      const { shortcut, rebind } = fakeShortcut("Alt+Shift+S");
+      const { container } = render(App, { props: { runner: fakeRunner, autostart: false, access, shortcut } });
+
+      const link = await screen.findByRole("link", { name: "Change or turn off" });
+      expect(link.getAttribute("href")).toBe("chrome://extensions/shortcuts");
+      expect(screen.getByText("Alt+Shift+S").tagName).toBe("KBD");
+      const prefs = container.querySelector(".prefs")!;
+      expect([...prefs.children].map((el) => el.className.split(" ")[0])).toEqual(["auto", "row"]);
+
+      // Back from the shortcuts page with the key removed.
+      rebind("");
+      expect(await screen.findByText("No keyboard shortcut")).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Set one" })).toBeTruthy();
+    });
+
+    it("turns the key off and on with a switch where the browser allows it", async () => {
+      const { shortcut } = fakeShortcut("Alt+Shift+S", true);
+      render(App, { props: { runner: fakeRunner, autostart: false, shortcut } });
+
+      const toggle = await screen.findByRole("switch", { name: /Keyboard shortcut/ });
+      await vi.waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+
+      await fireEvent.click(toggle);
+      expect(shortcut.setEnabled).toHaveBeenCalledWith(false);
+      await vi.waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("false"));
+      expect(screen.queryByText("Alt+Shift+S")).toBeNull();
+
+      await fireEvent.click(toggle);
+      expect(shortcut.setEnabled).toHaveBeenLastCalledWith(true);
+      await vi.waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+    });
+
+    it("offers no row where there is no commands API", () => {
+      render(App, { props: { runner: fakeRunner, autostart: false } });
+
+      expect(screen.queryByText("Keyboard shortcut")).toBeNull();
+    });
+  });
+
+  // Firefox lets the user withdraw the browsingActivity consent in about:addons
+  // and keep the access to all sites, and the access alone would let an
+  // automatic rescan read the tab and send its origin. In that state the tab is
+  // treated as one without access: nothing sent, the click state shown, and a
+  // click -- the toolbar icon or the shortcut, both arrive as "click" -- still
+  // scans, because a click is consent for that page.
+  describe("with the Firefox consent withdrawn but site access kept", () => {
+    const setup = (host: string) => {
+      const send = vi.spyOn(api, "postDetect").mockResolvedValue({
+        is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0,
+      });
+      const { access } = fakeAccess(false);
+      access.blocksAutoScan.mockResolvedValue(true);
+      let fire!: (trigger?: "auto" | "click") => void;
+      const watch = (onChange: (trigger?: "auto" | "click") => void) => { fire = onChange; return { stop: () => {} }; };
+      const view = render(App, { props: { runner: runnerFor(host), autostart: true, delays: [0], watch, access } });
+      return { send, access, view, fire: (t?: "auto" | "click") => fire(t) };
+    };
+
+    it("sends nothing on a tab switch or a load, and asks for a click", async () => {
+      const { send, fire } = setup("consent.example");
+      // Opening the panel is a click: that first scan is the user's.
+      await screen.findByText("consent.example");
+      await vi.waitFor(() => expect(screen.getByRole("button", { name: /rescan this page/i })).toBeTruthy());
+
+      fire("auto");
+
+      expect(await screen.findByText("Open Stackpeek on this store.")).toBeTruthy();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(sendsFor(send, "consent.example")).toBe(1);
+      expect(screen.queryByText("consent.example")).toBeNull();
+    });
+
+    it("still scans on a click on the icon or the shortcut", async () => {
+      const { send, fire } = setup("clicked.example");
+      await screen.findByText("clicked.example");
+      fire("auto");
+      await screen.findByText("Open Stackpeek on this store.");
+
+      fire("click");
+
+      expect(await screen.findByText("clicked.example")).toBeTruthy();
+      expect(sendsFor(send, "clicked.example")).toBe(2);
+    });
+  });
+
+  // handleTabChange awaits the consent check before it starts a run, so two
+  // changes arriving together could both pass the "is a scan in flight?" test
+  // and start two concurrent runs -- the race the queue exists to prevent.
+  it("starts one run for two automatic changes that arrive together, and queues the other", async () => {
+    const send = vi.spyOn(api, "postDetect").mockImplementation(
+      (payload) => new Promise<DetectResponse>((resolve) => {
+        if ((payload as { url?: string }).url !== "https://together.example/") return;
+        setTimeout(() => resolve({ is_shopify: true, theme: null, apps: [], pixels: [], unknown_domain_count: 0 }), 300);
+      }),
+    );
+    let fire!: () => void;
+    const watch = (onChange: () => void) => { fire = onChange; return { stop: () => {} }; };
+    render(App, { props: { runner: runnerFor("together.example"), autostart: false, delays: [0], watch } });
+
+    fire(); fire();
+    await vi.waitFor(() => expect(sendsFor(send, "together.example")).toBe(1));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(sendsFor(send, "together.example")).toBe(1);
+
+    await vi.waitFor(() => expect(sendsFor(send, "together.example")).toBe(2));
   });
 });

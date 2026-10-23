@@ -1,12 +1,13 @@
 formatLocale: fr-FR
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Shopify theme detector et app detector en un : thème, apps et traceurs d’une boutique. Export CSV, navigation non enregistrée."
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Détecteur de thèmes Shopify, détecteur d’applications et vérificateur de pixels, avec export CSV."
 actionTitle: Détecter le thème et les apps de cette boutique
 
 panel:
   scanning: Analyse en cours…
   rescan: Analyser à nouveau cette page
-  privacy: Confidentialité
+  rate: Noter
+  feedback: Commentaires
   held: Affichage maintenu sur $1 — la fiche ouverte n’est pas analysée.
 theme:
   heading: Thème
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Passer au thème sombre
   toLight: Passer au thème clair
+autoScan:
+  label: Analyser automatiquement au changement d’onglet
+  note: "Nécessite l’accès à tous les sites."
+  offer:
+    title: "Analyser les boutiques sans cliquer ?"
+    body: "Chaque onglet est analysé dès que vous y passez, et l’icône signale les boutiques Shopify. Nécessite l’accès à tous les sites."
+    accept: "Activer"
+    dismiss: "Non merci"
+shortcut:
+  label: "Raccourci clavier"
+  none: "Aucun raccourci clavier"
+  change: "Modifier ou désactiver"
+  set: "En définir un"
 terminal:
   notShopify:
     code: aucune correspondance
     title: Ce n’est pas une boutique Shopify.
     body: Comparaison au catalogue effectuée sans résultat. Aucune donnée de la page n’a été stockée.
+    hint: "Shopify peut ne pas être détecté sur les boutiques headless ou les pages encore en chargement."
     action: Analyser à nouveau
   cantScan:
     code: page illisible
@@ -119,17 +134,35 @@ terminal:
   error:
     code: réseau
     title: Impossible de joindre le détecteur.
-    body: Les signaux de la page ont été lus, mais l’API n’a pas répondu. Rien n’a été stocké.
+    body: "Notre serveur n’a pas répondu. Vérifiez votre connexion, puis réessayez."
+    action: Réessayer
+  offline:
+    code: hors ligne
+    title: Vous êtes hors ligne.
+    body: "Reconnectez-vous, puis réessayez."
+    action: Réessayer
+  timeout:
+    code: délai dépassé
+    title: Le détecteur a mis trop de temps.
+    body: "Notre serveur n’a pas répondu à temps. Réessayez dans un instant."
+    action: Réessayer
+  serverError:
+    code: serveur
+    title: Le détecteur a rencontré un problème.
+    body: "Le problème vient de nous, pas de cette boutique. Réessayez dans un instant."
     action: Réessayer
   rateLimited:
     code: "429"
     title: Patientez un instant avant de réessayer.
     body: Trop d’analyses sur une courte période. La limite se réinitialise automatiquement.
     action: Réessayer
+  wait: Vous pourrez réessayer $1.
   needsPermission:
     code: autorisation
     title: Ouvrez Stackpeek sur cette boutique.
     body: Cliquez sur l’icône Stackpeek dans la barre d’outils pour analyser cette page. Le navigateur accorde l’accès à une boutique à la fois, le panneau ne peut donc pas le faire à votre place.
+    shortcut: "Le raccourci $1 fait la même chose."
+    hint: "Ou analysez sans cliquer :"
   ours:
     code: c’est nous
     title: Vous avez pointé le détecteur vers lui-même.
@@ -140,5 +173,6 @@ report:
   scanned: Analysé le $1
   copyMarkdown: Copier en Markdown
   copied: Copié
+  copyFailed: Copie impossible — enregistré dans un fichier à la place.
   csv: CSV
   json: JSON

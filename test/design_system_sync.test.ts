@@ -146,7 +146,7 @@ describe("manifest icons", () => {
     );
     expect(messages.extName?.message).toBe("Shopify Theme Detector & Apps - Stackpeek");
     expect(messages.extDescription?.message).toBe(
-      "Shopify theme detector and app detector in one: any store's theme, apps and trackers. Export to CSV, never records your browsing.",
+      "Use this Shopify theme detector to see any store's theme, apps and trackers: an app detector and pixel checker with CSV export.",
     );
   });
 });
@@ -167,6 +167,17 @@ describe("host_permissions is scoped to build mode", () => {
   it("grants only the production API host in a production build", () => {
     const manifest = buildManifest("production");
     expect(manifest.host_permissions).toEqual(["https://api.stackpeek.app/*"]);
+  });
+
+  // Auto-scan's access to every site is requested at runtime, from the panel's
+  // switch. Moving these into host_permissions would put "Read and change all
+  // your data on all websites" on every install, for a feature most users
+  // never turn on.
+  it.each(["chrome", "firefox"])("keeps every-site access optional on %s", (browser) => {
+    const manifest = buildManifest("production", browser);
+    expect(manifest.optional_host_permissions).toEqual(["https://*/*", "http://*/*"]);
+    expect(manifest.host_permissions).not.toContain("https://*/*");
+    expect(manifest.host_permissions).not.toContain("<all_urls>");
   });
 
   it("also grants localhost in a development build", () => {
@@ -209,14 +220,16 @@ describe("the Firefox manifest", () => {
     expect(gecko.strict_min_version).toBe("140.0");
   });
 
-  it("declares websiteContent as required and technicalAndInteraction as optional", () => {
+  // browsingActivity is optional and asked for only by the auto-scan switch,
+  // which sends the origins of the tabs the user switches to (lib/host_access.ts).
+  it("declares websiteContent as required, technicalAndInteraction and browsingActivity as optional", () => {
     // technicalAndInteraction is ILLEGAL in `required` — Mozilla's rule is
     // that it must be optional. Putting it in `required` fails AMO validation
     // outright, which is how reverse-image-search 0.7.0 was rejected.
     const gecko = forBrowser("firefox").browser_specific_settings.gecko;
     expect(gecko.data_collection_permissions).toEqual({
       required: ["websiteContent"],
-      optional: ["technicalAndInteraction"],
+      optional: ["technicalAndInteraction", "browsingActivity"],
     });
   });
 
@@ -247,6 +260,14 @@ describe("the Firefox manifest", () => {
     // sidebar_action in this object would teach the next reader that the
     // config controls something it does not.
     expect(forBrowser("firefox").sidebar_action).toBeUndefined();
+  });
+
+  // _execute_action, not a named command: it dispatches action.onClicked,
+  // which is what opens the panel, grants activeTab and rescans an open one.
+  it.each(["chrome", "firefox"])("opens the panel from Alt+Shift+S on %s", (browser) => {
+    expect(forBrowser(browser).commands).toEqual({
+      _execute_action: { suggested_key: { default: "Alt+Shift+S" } },
+    });
   });
 
   it("keeps sidePanel in the Chrome manifest", () => {

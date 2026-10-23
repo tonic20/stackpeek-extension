@@ -1,12 +1,13 @@
 formatLocale: ko-KR
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: 모든 Shopify 스토어의 테마, 앱, 트래커를 즉시 확인하세요. 빠른 CSV 내보내기, 최소 권한, 방문 기록 저장 없음.
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Shopify 테마 탐지기로 스토어의 테마, 앱, 트래커를 확인하세요. 앱 탐지기와 픽셀 확인 도구, CSV 내보내기까지 한곳에서 이용하세요."
 actionTitle: 이 스토어의 테마와 앱 탐지
 
 panel:
   scanning: 스캔 중…
   rescan: 이 페이지 다시 스캔
-  privacy: 개인정보 보호
+  rate: 평가하기
+  feedback: 의견 보내기
   held: 계속 $1 표시 중입니다 — 새로 연 목록은 스캔되지 않았습니다.
 theme:
   heading: 테마
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: 어두운 테마로 전환
   toLight: 밝은 테마로 전환
+autoScan:
+  label: 탭을 바꿀 때 자동으로 스캔
+  note: "모든 사이트에 대한 접근 권한이 필요합니다."
+  offer:
+    title: "클릭 없이 스토어를 스캔할까요?"
+    body: "탭을 바꾸면 바로 스캔하고, 아이콘으로 Shopify 스토어를 표시합니다. 모든 사이트에 대한 접근 권한이 필요합니다."
+    accept: "켜기"
+    dismiss: "사용 안 함"
+shortcut:
+  label: "키보드 단축키"
+  none: "키보드 단축키 없음"
+  change: "변경 또는 끄기"
+  set: "설정하기"
 terminal:
   notShopify:
     code: 일치 없음
     title: Shopify 스토어가 아닙니다.
     body: 카탈로그와 대조했지만 일치하지 않았습니다. 페이지에 관한 정보는 저장되지 않았습니다.
+    hint: "헤드리스 스토어나 로딩 중인 페이지에서는 Shopify를 감지하지 못할 수 있습니다."
     action: 다시 스캔
   cantScan:
     code: 읽을 수 없는 페이지
@@ -119,17 +134,35 @@ terminal:
   error:
     code: 네트워크
     title: 탐지기에 연결할 수 없습니다.
-    body: 페이지 신호는 읽었지만 API가 응답하지 않았습니다. 아무것도 저장되지 않았습니다.
+    body: "서버가 응답하지 않았습니다. 연결을 확인한 후 다시 시도하세요."
+    action: 다시 시도
+  offline:
+    code: 오프라인
+    title: 오프라인 상태입니다.
+    body: "다시 연결한 후 다시 시도하세요."
+    action: 다시 시도
+  timeout:
+    code: 시간 초과
+    title: "감지 서비스의 응답이 너무 늦습니다."
+    body: "서버가 제시간에 응답하지 않았습니다. 잠시 후 다시 시도하세요."
+    action: 다시 시도
+  serverError:
+    code: 서버
+    title: "감지 서비스에 문제가 생겼습니다."
+    body: "이 스토어가 아니라 저희 쪽 문제입니다. 잠시 후 다시 시도하세요."
     action: 다시 시도
   rateLimited:
     code: "429"
     title: 잠시 기다린 후 다시 시도하세요.
     body: 짧은 시간에 너무 많이 스캔했습니다. 한도는 자동으로 초기화됩니다.
     action: 다시 시도
+  wait: $1에 다시 시도할 수 있습니다.
   needsPermission:
     code: 권한
     title: 이 스토어에서 Stackpeek을 여세요.
     body: 이 페이지를 스캔하려면 도구 모음의 Stackpeek 아이콘을 클릭하세요. 브라우저는 한 번에 한 스토어에만 접근을 허용하므로 패널이 대신 실행할 수 없습니다.
+    shortcut: "단축키 $1로도 같은 작업을 할 수 있습니다."
+    hint: "또는 클릭 없이 스캔:"
   ours:
     code: 바로 우리입니다
     title: 탐지기로 탐지기 자체를 가리켰습니다.
@@ -140,5 +173,6 @@ report:
   scanned: "스캔 날짜: $1"
   copyMarkdown: Markdown으로 복사
   copied: 복사됨
+  copyFailed: 복사하지 못해 파일로 저장했습니다.
   csv: CSV
   json: JSON

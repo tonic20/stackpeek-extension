@@ -1,5 +1,11 @@
-# The single locale we ship. Nothing here is translated yet; the point of the
-# file is that the second locale is a copy of it rather than a refactor
+# The default locale, and the source of every key. The other fourteen files
+# here translate it, and test/locales.test.ts requires each of them to define
+# exactly these keys, with the same $n placeholders -- so a string added here
+# is added to all fifteen in the same change. That is the only guard there is:
+# Chrome falls back to this file per message, so a missing translation ships
+# as English inside an otherwise translated panel and nothing else says so.
+# It started as the single locale, shaped so that the second would be a copy
+# rather than a refactor
 # (docs/superpowers/specs/2026-08-12-extension-i18n-scaffolding-design.md).
 #
 # Nested keys flatten to underscore-joined Chrome message names at build time
@@ -14,18 +20,23 @@
 # alone. One key per locale is the whole cost.
 formatLocale: en-US
 
-# The Chrome Web Store listing title and summary, decided in
-# docs/launch-research.md §7.1. They ship in the package, so changing either
+# The Chrome Web Store listing title and summary. Generated: the source is
+# docs/store-listing/_locales/en/messages.json (appName, shortDesc), copied here
+# and into every other catalog by scripts/build-extension-locales.ts -- edit it
+# there and rerun the script. They ship in the package, so changing either
 # still means an extension release rather than a store-field edit. Length
 # limits are enforced by test/locales.test.ts.
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Shopify theme detector and app detector in one: any store's theme, apps and trackers. Export to CSV, never records your browsing."
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Use this Shopify theme detector to see any store's theme, apps and trackers: an app detector and pixel checker with CSV export."
 actionTitle: Detect this store's theme & apps
 
 panel:
   scanning: Scanning…
   rescan: Rescan this page
-  privacy: Privacy
+  # The footer's way back to the product: the store's review page, and mail
+  # to us. Kept short in every locale -- the footer is one line at 320px.
+  rate: Rate us
+  feedback: Feedback
   # Shown when the user follows one of the panel's own theme/app links. $1 is
   # the store the results below describe, which is NOT the tab in front of
   # them -- naming it is the whole point of the line.
@@ -155,11 +166,34 @@ themeToggle:
   toDark: Switch to dark theme
   toLight: Switch to light theme
 
+# The opt-in for access to every site (lib/host_access.ts), shown above the
+# footer and beside needs_permission. Kept short: the browser's own prompt
+# follows, and the privacy page carries the detail.
+autoScan:
+  label: Scan automatically as I switch tabs
+  note: "Needs access to all sites."
+  offer:
+    title: "Scan stores without a click?"
+    body: "Tabs are scanned as you switch, and the icon marks Shopify stores. Needs access to all sites."
+    accept: "Turn on"
+    dismiss: "No thanks"
+
+# The toolbar action's key, below the auto-scan switch. Chrome lets only
+# the user change it, on its shortcuts page; Firefox has a switch.
+shortcut:
+  label: "Keyboard shortcut"
+  none: "No keyboard shortcut"
+  change: "Change or turn off"
+  set: "Set one"
+
 terminal:
   notShopify:
     code: no match
     title: Not a Shopify store.
     body: Checked against the catalogue and no match. Nothing about the page was stored.
+    # The two honest reasons a store could still be Shopify. The action below
+    # is the answer to the second.
+    hint: "Shopify may not be detected on headless stores or pages still loading."
     action: Scan again
   cantScan:
     code: unreadable page
@@ -168,7 +202,28 @@ terminal:
   error:
     code: network
     title: Couldn't reach the detector.
-    body: The page signals were read; the API didn't answer. Nothing was stored.
+    body: "Our server didn't answer. Check your connection and retry."
+    action: Retry
+  # The browser reports no network at all (navigator.onLine === false). Only
+  # that reading is trusted; anything less certain stays with `error` above.
+  offline:
+    code: offline
+    title: You're offline.
+    body: "Reconnect and retry."
+    action: Retry
+  # No number of seconds: it would need plural forms, and would stop being
+  # true the day DETECT_TIMEOUT_MS is tuned.
+  timeout:
+    code: timeout
+    title: The detector took too long.
+    body: "Our server didn't answer in time. Retry in a moment."
+    action: Retry
+  # The API answered with an error. Says whose fault it is, because otherwise
+  # the natural next step is to go and check a connection that is fine.
+  serverError:
+    code: server
+    title: The detector had a problem.
+    body: "The problem is on our side, not this store's. Retry in a moment."
     action: Retry
   rateLimited:
     # Quoted: an unquoted 429 parses as a number, which the message parser
@@ -177,10 +232,18 @@ terminal:
     title: Please slow down and try again.
     body: Too many scans in a short window. The limit resets on its own.
     action: Retry
+  # Read to a screen reader once, when Retry is disabled through a rate-limit
+  # wait. $1 is the wait as Intl.RelativeTimeFormat words it -- "in 30
+  # seconds", "через 30 секунд" -- with the plural forms already chosen, so
+  # the sentence has to read with that phrase dropped in whole.
+  wait: You can try again $1.
   needsPermission:
     code: permission
     title: Open Stackpeek on this store.
     body: Click the Stackpeek icon in the toolbar to scan this page. Your browser grants access one store at a time, which is why the panel cannot do it for you.
+    shortcut: "The shortcut $1 does the same."
+    # Leads into the auto-scan switch, offered as the alternative to the click.
+    hint: "Or scan without clicking:"
   ours:
     code: it's us
     title: You pointed the detector at the detector.
@@ -191,5 +254,8 @@ report:
   scanned: Scanned $1
   copyMarkdown: Copy as Markdown
   copied: Copied
+  # The clipboard refused, so the Markdown report was downloaded instead.
+  # Explains a download the user did not ask for.
+  copyFailed: Couldn't copy — saved as a file instead.
   csv: CSV
   json: JSON

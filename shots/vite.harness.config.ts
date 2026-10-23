@@ -15,13 +15,19 @@ export function loadHarnessMessages(localesDir: string) {
   const tags: Record<string, string> = {};
 
   for (const file of readdirSync(localesDir).sort()) {
-    const match = file.match(/^([a-z]{2}(?:_[A-Z]{2})?)\.yml$/);
+    const match = file.match(/^([a-z]{2,3}(?:_(?:[A-Z]{2}|\d{3}))?)\.yml$/);
     if (!match) continue;
 
     const code = match[1]!;
     const generated = generateChromeMessages(
       parseMessagesText(readFileSync(resolve(localesDir, file), "utf8"), "YAML"),
     );
+    // A manifest-only catalog (just the store name and summary; the panel
+    // falls back to English) has no panel of its own to photograph. Skipped by
+    // its exact shape, so a UI catalog that merely lost its formatLocale still
+    // throws below instead of quietly dropping out of the screenshot run.
+    const keys = Object.keys(generated).sort();
+    if (keys.length === 2 && keys[0] === "extDescription" && keys[1] === "extName") continue;
     const tag = generated.formatLocale?.message;
     if (!tag) throw new Error(`${file} has no formatLocale message`);
     messages[code] = generated;

@@ -1,12 +1,13 @@
 formatLocale: tr-TR
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Tek yerde Shopify theme detector ve app detector: tema, uygulamalar ve takip kodları. CSV dışa aktarımı, geçmiş kaydı yok."
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Shopify tema bulucu, uygulama tespit aracı ve piksel denetleyici ile mağazaların altyapısını keşfedin, CSV olarak dışa aktarın."
 actionTitle: Bu mağazanın tema ve uygulamalarını algıla
 
 panel:
   scanning: Taranıyor…
   rescan: Bu sayfayı yeniden tara
-  privacy: Gizlilik
+  rate: Puan ver
+  feedback: Geri bildirim
   held: Hâlâ $1 gösteriliyor — açtığınız liste taranmadı.
 theme:
   heading: Tema
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Koyu temaya geç
   toLight: Açık temaya geç
+autoScan:
+  label: Sekme değiştirdiğimde otomatik tara
+  note: "Tüm sitelere erişim gerekir."
+  offer:
+    title: "Mağazalar tıklamaya gerek kalmadan taransın mı?"
+    body: "Geçtiğiniz sekme taranır; simge Shopify mağazalarını işaretler. Tüm sitelere erişim gerekir."
+    accept: "Aç"
+    dismiss: "Hayır, teşekkürler"
+shortcut:
+  label: "Klavye kısayolu"
+  none: "Klavye kısayolu yok"
+  change: "Değiştir veya kapat"
+  set: "Kısayol ata"
 terminal:
   notShopify:
     code: eşleşme yok
     title: Shopify mağazası değil.
     body: Katalogla karşılaştırıldı ve eşleşme bulunamadı. Sayfaya ait hiçbir şey saklanmadı.
+    hint: "Headless mağazalarda veya hâlâ yüklenen sayfalarda Shopify algılanamayabilir."
     action: Yeniden tara
   cantScan:
     code: okunamayan sayfa
@@ -119,17 +134,35 @@ terminal:
   error:
     code: ağ
     title: Dedektöre ulaşılamadı.
-    body: Sayfa sinyalleri okundu, ancak API yanıt vermedi. Hiçbir şey saklanmadı.
+    body: "Sunucumuz yanıt vermedi. Bağlantınızı kontrol edip yeniden deneyin."
+    action: Yeniden dene
+  offline:
+    code: çevrimdışı
+    title: Çevrimdışısınız.
+    body: "Yeniden bağlanıp tekrar deneyin."
+    action: Yeniden dene
+  timeout:
+    code: zaman aşımı
+    title: "Dedektör zamanında yanıt vermedi."
+    body: "Sunucumuz zamanında yanıt vermedi. Biraz sonra yeniden deneyin."
+    action: Yeniden dene
+  serverError:
+    code: sunucu
+    title: Dedektörde bir sorun oluştu.
+    body: "Sorun bu mağazada değil, bizde. Biraz sonra yeniden deneyin."
     action: Yeniden dene
   rateLimited:
     code: "429"
     title: Lütfen biraz bekleyip yeniden deneyin.
     body: Kısa sürede çok fazla tarama yapıldı. Sınır kendiliğinden sıfırlanır.
     action: Yeniden dene
+  wait: $1 yeniden deneyebilirsiniz.
   needsPermission:
     code: izin
     title: Stackpeek'i bu mağazada açın.
     body: Bu sayfayı taramak için araç çubuğundaki Stackpeek simgesine tıklayın. Tarayıcınız her seferinde yalnızca bir mağazaya erişim verir; bu yüzden panel bunu sizin yerinize yapamaz.
+    shortcut: "$1 kısayolu da aynı işi yapar."
+    hint: "Ya da tıklamadan tarayın:"
   ours:
     code: bu biziz
     title: Dedektörü kendisine yönelttiniz.
@@ -140,5 +173,6 @@ report:
   scanned: $1 tarihinde tarandı
   copyMarkdown: Markdown olarak kopyala
   copied: Kopyalandı
+  copyFailed: Kopyalanamadı — bunun yerine dosya olarak kaydedildi.
   csv: CSV
   json: JSON

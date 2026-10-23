@@ -1,12 +1,13 @@
 formatLocale: ja-JP
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Shopifyストアのテーマ、アプリ、トラッカーを瞬時に確認。CSV出力対応。高速・最小限の権限で、閲覧履歴は保存しません。
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Shopifyテーマ検出ツールで、ストアのテーマ・アプリ・トラッカーを確認。アプリ検出とピクセルチェック、CSV出力にも対応。"
 actionTitle: このストアのテーマとアプリを検出
 
 panel:
   scanning: スキャン中…
   rescan: このページを再スキャン
-  privacy: プライバシー
+  rate: 評価する
+  feedback: フィードバック
   held: 引き続き$1を表示しています — 開いたリストはスキャンされていません。
 theme:
   heading: テーマ
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: ダークテーマに切り替え
   toLight: ライトテーマに切り替え
+autoScan:
+  label: タブを切り替えたら自動でスキャン
+  note: "すべてのサイトへのアクセスが必要です。"
+  offer:
+    title: "クリックせずにストアをスキャンしますか？"
+    body: "タブを切り替えるだけでスキャンし、Shopify ストアはアイコンでわかります。すべてのサイトへのアクセスが必要です。"
+    accept: "オンにする"
+    dismiss: "使わない"
+shortcut:
+  label: "キーボードショートカット"
+  none: "キーボードショートカットなし"
+  change: "変更・オフにする"
+  set: "設定する"
 terminal:
   notShopify:
     code: 一致なし
     title: Shopifyストアではありません。
     body: カタログと照合しましたが一致しませんでした。ページに関する情報は保存されていません。
+    hint: "ヘッドレスストアや読み込み中のページでは、Shopifyを検出できないことがあります。"
     action: もう一度スキャン
   cantScan:
     code: 読み取り不可
@@ -119,17 +134,35 @@ terminal:
   error:
     code: ネットワーク
     title: 検出サービスに接続できませんでした。
-    body: ページのシグナルは読み取りましたが、APIから応答がありませんでした。何も保存されていません。
+    body: "サーバーから応答がありませんでした。接続を確認してから再試行してください。"
+    action: 再試行
+  offline:
+    code: オフライン
+    title: オフラインです。
+    body: "再接続してから再試行してください。"
+    action: 再試行
+  timeout:
+    code: タイムアウト
+    title: 検出サービスの応答に時間がかかりすぎました。
+    body: "サーバーが時間内に応答しませんでした。しばらくしてから再試行してください。"
+    action: 再試行
+  serverError:
+    code: サーバー
+    title: 検出サービスで問題が発生しました。
+    body: "原因はこのストアではなく当社側にあります。しばらくしてから再試行してください。"
     action: 再試行
   rateLimited:
     code: "429"
     title: 少し待ってからもう一度お試しください。
     body: 短時間にスキャンが集中しました。制限は自動的に解除されます。
     action: 再試行
+  wait: $1に再試行できます。
   needsPermission:
     code: 権限
     title: このストアでStackpeekを開いてください。
     body: ツールバーのStackpeekアイコンをクリックしてこのページをスキャンしてください。ブラウザは一度に1ストアずつアクセスを許可するため、パネルからは実行できません。
+    shortcut: "ショートカット $1 でも同じ操作ができます。"
+    hint: "または、クリックせずにスキャン："
   ours:
     code: Stackpeekです
     title: 検出ツール自身を検出しようとしています。
@@ -140,5 +173,6 @@ report:
   scanned: スキャン日 $1
   copyMarkdown: Markdownとしてコピー
   copied: コピーしました
+  copyFailed: コピーできなかったため、ファイルとして保存しました。
   csv: CSV
   json: JSON

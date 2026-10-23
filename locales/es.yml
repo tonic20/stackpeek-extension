@@ -1,12 +1,13 @@
 formatLocale: es
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Shopify theme detector y app detector en uno: tema, apps y rastreadores de cualquier tienda. Exporta CSV, sin guardar historial."
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Detector de temas de Shopify, detector de aplicaciones y comprobador de píxeles: descubre cada tienda y exporta a CSV."
 actionTitle: Detectar el tema y las apps de esta tienda
 
 panel:
   scanning: Analizando…
   rescan: Volver a analizar esta página
-  privacy: Privacidad
+  rate: Valorar
+  feedback: Comentarios
   held: Se sigue mostrando $1; la ficha que abriste no se ha analizado.
 theme:
   heading: Tema
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Cambiar al tema oscuro
   toLight: Cambiar al tema claro
+autoScan:
+  label: Analizar automáticamente al cambiar de pestaña
+  note: "Necesita acceso a todos los sitios."
+  offer:
+    title: "¿Analizar tiendas sin hacer clic?"
+    body: "Las pestañas se analizan al cambiar, y el icono marca las tiendas Shopify. Necesita acceso a todos los sitios."
+    accept: "Activar"
+    dismiss: "No, gracias"
+shortcut:
+  label: "Atajo de teclado"
+  none: "Sin atajo de teclado"
+  change: "Cambiar o desactivar"
+  set: "Definir uno"
 terminal:
   notShopify:
     code: sin coincidencia
     title: No es una tienda Shopify.
     body: Se comparó con el catálogo y no hubo coincidencias. No se guardó nada de la página.
+    hint: "Es posible que no se detecte Shopify en tiendas headless o páginas que aún se cargan."
     action: Analizar de nuevo
   cantScan:
     code: página ilegible
@@ -119,17 +134,35 @@ terminal:
   error:
     code: red
     title: No se pudo contactar con el detector.
-    body: Se leyeron las señales de la página, pero la API no respondió. No se guardó nada.
+    body: "Nuestro servidor no respondió. Comprueba tu conexión e inténtalo de nuevo."
+    action: Reintentar
+  offline:
+    code: sin conexión
+    title: No tienes conexión.
+    body: "Vuelve a conectarte e inténtalo de nuevo."
+    action: Reintentar
+  timeout:
+    code: tiempo agotado
+    title: El detector tardó demasiado.
+    body: "Nuestro servidor no respondió a tiempo. Vuelve a intentarlo en un momento."
+    action: Reintentar
+  serverError:
+    code: servidor
+    title: El detector tuvo un problema.
+    body: "El fallo es nuestro, no de esta tienda. Vuelve a intentarlo en un momento."
     action: Reintentar
   rateLimited:
     code: "429"
     title: Espera un momento e inténtalo de nuevo.
     body: Demasiados análisis en poco tiempo. El límite se restablece solo.
     action: Reintentar
+  wait: Podrás volver a intentarlo $1.
   needsPermission:
     code: permiso
     title: Abre Stackpeek en esta tienda.
     body: Haz clic en el icono de Stackpeek de la barra para analizar esta página. El navegador concede acceso a una tienda cada vez, por eso el panel no puede hacerlo por ti.
+    shortcut: "El atajo $1 hace lo mismo."
+    hint: "O analiza sin hacer clic:"
   ours:
     code: somos nosotros
     title: Has apuntado el detector hacia el propio detector.
@@ -140,5 +173,6 @@ report:
   scanned: Analizado el $1
   copyMarkdown: Copiar como Markdown
   copied: Copiado
+  copyFailed: No se pudo copiar; se guardó como archivo.
   csv: CSV
   json: JSON

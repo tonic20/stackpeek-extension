@@ -1,12 +1,13 @@
 formatLocale: id-ID
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Lihat tema, aplikasi, dan pelacak toko Shopify seketika. Ekspor CSV, cepat, izin minimal, tanpa menyimpan riwayat jelajah.
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Pendeteksi tema Shopify untuk melihat tema, aplikasi, dan pelacak toko: pendeteksi aplikasi dan pemeriksa piksel dengan ekspor CSV."
 actionTitle: Deteksi tema dan aplikasi toko ini
 
 panel:
   scanning: Memindai…
   rescan: Pindai ulang halaman ini
-  privacy: Privasi
+  rate: Beri nilai
+  feedback: Masukan
   held: Masih menampilkan $1 — halaman yang Anda buka tidak dipindai.
 theme:
   heading: Tema
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Beralih ke tema gelap
   toLight: Beralih ke tema terang
+autoScan:
+  label: Pindai otomatis saat saya berpindah tab
+  note: "Perlu akses ke semua situs."
+  offer:
+    title: "Pindai toko tanpa klik?"
+    body: "Tab dipindai saat Anda berpindah, dan ikon menandai toko Shopify. Perlu akses ke semua situs."
+    accept: "Aktifkan"
+    dismiss: "Tidak, terima kasih"
+shortcut:
+  label: "Pintasan keyboard"
+  none: "Tidak ada pintasan keyboard"
+  change: "Ubah atau matikan"
+  set: "Atur pintasan"
 terminal:
   notShopify:
     code: tidak cocok
     title: Bukan toko Shopify.
     body: Sudah dibandingkan dengan katalog dan tidak cocok. Tidak ada data halaman yang disimpan.
+    hint: "Shopify mungkin tidak terdeteksi di toko headless atau halaman yang masih dimuat."
     action: Pindai lagi
   cantScan:
     code: halaman tak terbaca
@@ -119,17 +134,35 @@ terminal:
   error:
     code: jaringan
     title: Pendeteksi tidak dapat dijangkau.
-    body: Sinyal halaman telah dibaca, tetapi API tidak menjawab. Tidak ada yang disimpan.
+    body: "Server kami tidak merespons. Periksa koneksi Anda, lalu coba lagi."
+    action: Coba lagi
+  offline:
+    code: offline
+    title: Anda sedang offline.
+    body: "Sambungkan kembali, lalu coba lagi."
+    action: Coba lagi
+  timeout:
+    code: waktu habis
+    title: Pendeteksi terlalu lama merespons.
+    body: "Server kami tidak merespons tepat waktu. Coba lagi sebentar lagi."
+    action: Coba lagi
+  serverError:
+    code: server
+    title: Pendeteksi mengalami masalah.
+    body: "Masalahnya ada di pihak kami, bukan toko ini. Coba lagi sebentar lagi."
     action: Coba lagi
   rateLimited:
     code: "429"
     title: Tunggu sebentar lalu coba lagi.
     body: Terlalu banyak pemindaian dalam waktu singkat. Batas akan diatur ulang otomatis.
     action: Coba lagi
+  wait: Anda dapat mencoba lagi $1.
   needsPermission:
     code: izin
     title: Buka Stackpeek di toko ini.
     body: Klik ikon Stackpeek di bilah alat untuk memindai halaman ini. Browser memberikan akses ke satu toko setiap kali, sehingga panel tidak dapat melakukannya untuk Anda.
+    shortcut: "Pintasan $1 melakukan hal yang sama."
+    hint: "Atau pindai tanpa klik:"
   ours:
     code: ini kami
     title: Anda mengarahkan pendeteksi ke pendeteksi itu sendiri.
@@ -140,5 +173,6 @@ report:
   scanned: Dipindai pada $1
   copyMarkdown: Salin sebagai Markdown
   copied: Disalin
+  copyFailed: Tidak dapat menyalin — disimpan sebagai file.
   csv: CSV
   json: JSON

@@ -1,12 +1,13 @@
 formatLocale: vi-VN
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: Xem ngay theme, ứng dụng và trình theo dõi của mọi cửa hàng Shopify. Xuất CSV nhanh, ít quyền, không lưu lịch sử duyệt web.
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Công cụ nhận diện giao diện Shopify, phát hiện ứng dụng, kiểm tra điểm ảnh theo dõi và xuất CSV."
 actionTitle: Dò giao diện và ứng dụng của cửa hàng này
 
 panel:
   scanning: Đang quét…
   rescan: Quét lại trang này
-  privacy: Quyền riêng tư
+  rate: Đánh giá
+  feedback: Góp ý
   held: Vẫn đang hiển thị $1 — trang bạn vừa mở chưa được quét.
 theme:
   heading: Giao diện
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Chuyển sang giao diện tối
   toLight: Chuyển sang giao diện sáng
+autoScan:
+  label: Tự động quét khi tôi chuyển tab
+  note: "Cần quyền truy cập mọi trang web."
+  offer:
+    title: "Quét cửa hàng mà không cần nhấp?"
+    body: "Tab được quét khi bạn chuyển tới, và biểu tượng đánh dấu cửa hàng Shopify. Cần quyền truy cập mọi trang web."
+    accept: "Bật"
+    dismiss: "Không, cảm ơn"
+shortcut:
+  label: "Phím tắt"
+  none: "Chưa có phím tắt"
+  change: "Đổi hoặc tắt"
+  set: "Đặt phím tắt"
 terminal:
   notShopify:
     code: không khớp
     title: Không phải cửa hàng Shopify.
     body: Đã đối chiếu với danh mục nhưng không khớp. Không có dữ liệu nào của trang được lưu.
+    hint: "Có thể không phát hiện được Shopify trên cửa hàng headless hoặc trang đang tải."
     action: Quét lại
   cantScan:
     code: trang không đọc được
@@ -119,17 +134,35 @@ terminal:
   error:
     code: mạng
     title: Không thể kết nối với trình dò.
-    body: Đã đọc tín hiệu trang nhưng API không phản hồi. Không có gì được lưu.
+    body: "Máy chủ của chúng tôi không phản hồi. Hãy kiểm tra kết nối rồi thử lại."
+    action: Thử lại
+  offline:
+    code: ngoại tuyến
+    title: Bạn đang ngoại tuyến.
+    body: "Hãy kết nối lại rồi thử lại."
+    action: Thử lại
+  timeout:
+    code: hết thời gian
+    title: "Trình dò phản hồi quá chậm."
+    body: "Máy chủ của chúng tôi không phản hồi kịp. Hãy thử lại sau giây lát."
+    action: Thử lại
+  serverError:
+    code: máy chủ
+    title: Trình dò gặp sự cố.
+    body: "Lỗi ở phía chúng tôi, không phải cửa hàng này. Hãy thử lại sau giây lát."
     action: Thử lại
   rateLimited:
     code: "429"
     title: Vui lòng chờ một chút rồi thử lại.
     body: Có quá nhiều lượt quét trong thời gian ngắn. Giới hạn sẽ tự đặt lại.
     action: Thử lại
+  wait: Bạn có thể thử lại $1.
   needsPermission:
     code: quyền truy cập
     title: Mở Stackpeek trên cửa hàng này.
     body: Nhấp biểu tượng Stackpeek trên thanh công cụ để quét trang. Trình duyệt chỉ cấp quyền cho từng cửa hàng, vì vậy bảng điều khiển không thể tự làm thay bạn.
+    shortcut: "Phím tắt $1 cũng làm như vậy."
+    hint: "Hoặc quét mà không cần nhấp:"
   ours:
     code: chính là chúng tôi
     title: Bạn đã hướng trình dò vào chính nó.
@@ -140,5 +173,6 @@ report:
   scanned: Đã quét vào $1
   copyMarkdown: Sao chép dạng Markdown
   copied: Đã sao chép
+  copyFailed: Không sao chép được — đã lưu thành tệp.
   csv: CSV
   json: JSON

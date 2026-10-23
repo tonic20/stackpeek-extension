@@ -1,12 +1,13 @@
 formatLocale: de-DE
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Shopify Theme Detector und App Detector in einem: Theme, Apps und Tracker jedes Shops. CSV-Export, speichert nie deinen Verlauf."
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Shopify-Theme-Erkennung, App-Erkennung und Pixel-Prüfung: Themes, Apps und Tracker von Shops prüfen und als CSV exportieren."
 actionTitle: Theme und Apps dieses Shops erkennen
 
 panel:
   scanning: Wird analysiert…
   rescan: Seite erneut analysieren
-  privacy: Datenschutz
+  rate: Bewerten
+  feedback: Feedback
   held: Weiterhin wird $1 angezeigt — die geöffnete Seite wird nicht analysiert.
 theme:
   heading: Theme
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Zum dunklen Theme wechseln
   toLight: Zum hellen Theme wechseln
+autoScan:
+  label: Beim Tabwechsel automatisch analysieren
+  note: "Braucht Zugriff auf alle Websites."
+  offer:
+    title: "Shops ohne Klick analysieren?"
+    body: "Tabs werden beim Wechseln analysiert, das Symbol markiert Shopify-Shops. Braucht Zugriff auf alle Websites."
+    accept: "Einschalten"
+    dismiss: "Nein, danke"
+shortcut:
+  label: "Tastenkürzel"
+  none: "Kein Tastenkürzel"
+  change: "Ändern oder ausschalten"
+  set: "Festlegen"
 terminal:
   notShopify:
     code: keine Übereinstimmung
     title: Kein Shopify-Shop.
     body: Mit dem Katalog abgeglichen, ohne Treffer. Von der Seite wurde nichts gespeichert.
+    hint: "Bei Headless-Shops oder noch ladenden Seiten wird Shopify eventuell nicht erkannt."
     action: Erneut analysieren
   cantScan:
     code: Seite nicht lesbar
@@ -119,17 +134,35 @@ terminal:
   error:
     code: Netzwerk
     title: Der Detektor ist nicht erreichbar.
-    body: Die Seitensignale wurden gelesen, aber die API antwortete nicht. Nichts wurde gespeichert.
+    body: "Unser Server hat nicht geantwortet. Prüfe deine Verbindung und versuche es erneut."
+    action: Erneut versuchen
+  offline:
+    code: offline
+    title: Du bist offline.
+    body: "Stelle die Verbindung wieder her und versuche es erneut."
+    action: Erneut versuchen
+  timeout:
+    code: Zeitüberschreitung
+    title: Der Detektor hat zu lange gebraucht.
+    body: "Unser Server hat nicht rechtzeitig geantwortet. Versuche es gleich noch einmal."
+    action: Erneut versuchen
+  serverError:
+    code: Server
+    title: Beim Detektor ist ein Fehler aufgetreten.
+    body: "Das liegt an uns, nicht an diesem Shop. Versuche es gleich noch einmal."
     action: Erneut versuchen
   rateLimited:
     code: "429"
     title: Bitte warte kurz und versuche es erneut.
     body: Zu viele Analysen in kurzer Zeit. Das Limit wird automatisch zurückgesetzt.
     action: Erneut versuchen
+  wait: Du kannst es $1 erneut versuchen.
   needsPermission:
     code: Berechtigung
     title: Öffne Stackpeek in diesem Shop.
     body: Klicke in der Symbolleiste auf Stackpeek, um diese Seite zu analysieren. Dein Browser erteilt Zugriff jeweils nur für einen Shop; deshalb kann das Panel dies nicht selbst tun.
+    shortcut: "Das Tastenkürzel $1 tut dasselbe."
+    hint: "Oder ohne Klick analysieren:"
   ours:
     code: das sind wir
     title: Du hast den Detektor auf den Detektor gerichtet.
@@ -140,5 +173,6 @@ report:
   scanned: Analysiert am $1
   copyMarkdown: Als Markdown kopieren
   copied: Kopiert
+  copyFailed: "Kopieren nicht möglich – stattdessen als Datei gespeichert."
   csv: CSV
   json: JSON

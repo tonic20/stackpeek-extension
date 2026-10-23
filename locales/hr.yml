@@ -1,0 +1,7 @@
+# Manifest only: the Chrome Web Store name and summary in this language, generated
+# from docs/store-listing/_locales by scripts/build-extension-locales.ts -- edit the
+# source there, not this file. The panel is not translated into this language, so
+# Chrome shows it in English (default_locale, locales/en.yml); formatLocale is
+# absent on purpose, so numbers are formatted to match that English text.
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Detektor Shopify tema otkriva temu, aplikacije i alate za praćenje: detektor aplikacija i provjera piksela uz izvoz u CSV."

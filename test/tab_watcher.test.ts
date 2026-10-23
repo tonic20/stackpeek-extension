@@ -1,15 +1,27 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { watchActiveTab } from "../lib/tab_watcher";
+import { ACTION_CLICKED } from "../lib/action_click";
 import { stubBrowser } from "./setup";
 
 type Listener = (...args: any[]) => void;
 let activated: Listener[];
 let updated: Listener[];
+let messaged: Listener[];
 
 beforeEach(() => {
   activated = [];
   updated = [];
+  messaged = [];
   stubBrowser({
+    // id survives the replacement: it is what makes wxt/browser pick this
+    // object at all (test/setup.ts).
+    runtime: {
+      id: "vitest",
+      onMessage: {
+        addListener: (fn: Listener) => messaged.push(fn),
+        removeListener: (fn: Listener) => { messaged = messaged.filter((f) => f !== fn); },
+      },
+    },
     tabs: {
       query: vi.fn(async () => [{ id: 7, url: "https://demo.example/" }]),
       onActivated: {
@@ -175,6 +187,84 @@ describe("watchActiveTab", () => {
     expect(onChange).toHaveBeenCalledOnce();
   });
 
+  // The click that needs_permission asks for. Without this the panel never
+  // learned it had happened, and went on showing the instruction the user had
+  // just followed.
+  it("reports a toolbar click on the tab in front of this panel", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange);
+    await settle();
+
+    messaged.forEach((fn) => fn({ type: ACTION_CLICKED, tabId: 7 }));
+    await settle();
+
+    expect(onChange).toHaveBeenCalledOnce();
+    // A click, not something the watcher noticed: on Firefox only the second
+    // kind needs the browsingActivity consent.
+    expect(onChange).toHaveBeenCalledWith("click");
+  });
+
+  it("calls a switch or a finished load an automatic change", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange);
+    await settle();
+
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    updated.forEach((fn) => fn(9, { status: "complete" }));
+
+    expect(onChange.mock.calls).toEqual([["auto"], ["auto"]]);
+  });
+
+  // Every open panel hears the message. A click in another window granted
+  // nothing here, and rescanning on it would only arrive at the same refusal.
+  it("ignores a toolbar click on a tab in another window", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange);
+    await settle();
+
+    messaged.forEach((fn) => fn({ type: ACTION_CLICKED, tabId: 42 }));
+    await settle();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores messages that are not a toolbar click", async () => {
+    const onChange = vi.fn();
+    watchActiveTab(onChange);
+    await settle();
+
+    messaged.forEach((fn) => fn({ type: "something-else", tabId: 7 }));
+    messaged.forEach((fn) => fn("stackpeek:action-clicked"));
+    await settle();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  // Clicking the icon on a held tab is asking for that tab after all. Left
+  // holding, the watcher would ignore its reloads and treat going back to the
+  // store as no change -- leaving the listing's result under the store's tab.
+  it("stops holding a tab the user clicked the icon on, and watches it", async () => {
+    const onChange = vi.fn();
+    const onHold = vi.fn();
+    const tabs = (globalThis as any).browser.tabs;
+    watchActiveTab(onChange, { claim: (id) => id === 9, onHold });
+    await settle();
+    activated.forEach((fn) => fn({ tabId: 9 }));
+    tabs.query.mockResolvedValue([{ id: 9 }]);
+
+    messaged.forEach((fn) => fn({ type: ACTION_CLICKED, tabId: 9 }));
+    await settle();
+    expect(onHold).toHaveBeenLastCalledWith(false);
+    expect(onChange).toHaveBeenCalledOnce();
+
+    updated.forEach((fn) => fn(9, { status: "complete" }));
+    expect(onChange).toHaveBeenCalledTimes(2);
+
+    // And the store tab is now a different page from the one on screen.
+    activated.forEach((fn) => fn({ tabId: 7 }));
+    expect(onChange).toHaveBeenCalledTimes(3);
+  });
+
   it("stops listening when stopped", async () => {
     const onChange = vi.fn();
     const watcher = watchActiveTab(onChange);
@@ -186,6 +276,7 @@ describe("watchActiveTab", () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(activated).toHaveLength(0);
     expect(updated).toHaveLength(0);
+    expect(messaged).toHaveLength(0);
   });
 
   // Every panel rendering test mounts App outside an extension.

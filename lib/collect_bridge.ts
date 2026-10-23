@@ -38,11 +38,21 @@ function originOf(url: string | undefined): string | undefined {
   }
 }
 
-export async function collectFromActiveTab(): Promise<{
+// onUrl hears the tab's origin as soon as the tab is known, before the
+// injection -- which can take seconds: the probe list may wait on /config, and
+// the collector waits in-page for window.Shopify. The panel header names the
+// store being scanned, and without this it could only learn the name from the
+// finished collection, so a rescan showed the previous store's name over the
+// next store's skeleton for as long as that took. Same value, same origin
+// truncation, as the `url` this resolves with; it is only earlier.
+export async function collectFromActiveTab(
+  onUrl?: (url: string | undefined) => void,
+): Promise<{
   signals: unknown;
   url: string | undefined;
 }> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  onUrl?.(originOf(tab?.url));
   // No active tab means there is nothing to inject into. The catch below
   // already degrades to exactly this result -- previously by way of a
   // TypeError on tab.id -- so returning it up front only skips the probe-list

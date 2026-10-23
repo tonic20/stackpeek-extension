@@ -1,12 +1,13 @@
 formatLocale: zh-CN
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: 即时查看任意 Shopify 商店的主题、应用和跟踪器。快速导出 CSV，仅需最少权限，绝不记录浏览历史。
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "用这款 Shopify 主题检测器，查看店铺的主题、应用和跟踪器。集应用检测器与像素检查器于一体，支持 CSV 导出。"
 actionTitle: 检测此商店的主题和应用
 
 panel:
   scanning: 正在扫描…
   rescan: 重新扫描此页面
-  privacy: 隐私
+  rate: 评分
+  feedback: 反馈
   held: 仍在显示 $1 — 你打开的列表尚未扫描。
 theme:
   heading: 主题
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: 切换到深色主题
   toLight: 切换到浅色主题
+autoScan:
+  label: 切换标签页时自动扫描
+  note: "需要访问所有网站的权限。"
+  offer:
+    title: "无需点击即可扫描商店？"
+    body: "切换标签页即自动扫描，图标会标出 Shopify 商店。需要访问所有网站的权限。"
+    accept: "开启"
+    dismiss: "不用了"
+shortcut:
+  label: "键盘快捷键"
+  none: "未设置键盘快捷键"
+  change: "更改或关闭"
+  set: "设置"
 terminal:
   notShopify:
     code: 无匹配项
     title: 这不是 Shopify 商店。
     body: 已与目录比对，但没有匹配项。未存储任何页面信息。
+    hint: "在无头商店或仍在加载的页面上，可能检测不到 Shopify。"
     action: 重新扫描
   cantScan:
     code: 页面无法读取
@@ -119,17 +134,35 @@ terminal:
   error:
     code: 网络
     title: 无法连接检测服务。
-    body: 已读取页面信号，但 API 未响应。未存储任何信息。
+    body: "我们的服务器未响应。请检查网络连接后重试。"
+    action: 重试
+  offline:
+    code: 离线
+    title: 你已离线。
+    body: "请恢复网络连接后重试。"
+    action: 重试
+  timeout:
+    code: 超时
+    title: 检测服务响应时间过长。
+    body: "我们的服务器未能及时响应。请稍后重试。"
+    action: 重试
+  serverError:
+    code: 服务器
+    title: 检测服务出现问题。
+    body: "问题出在我们这边，而不是这家商店。请稍后重试。"
     action: 重试
   rateLimited:
     code: "429"
     title: 请稍后再试。
     body: 短时间内扫描次数过多。限额会自动重置。
     action: 重试
+  wait: $1可重试。
   needsPermission:
     code: 权限
     title: 请在此商店中打开 Stackpeek。
     body: 点击工具栏中的 Stackpeek 图标以扫描此页面。浏览器每次只授权访问一家商店，因此面板无法代你执行。
+    shortcut: "快捷键 $1 也能做到。"
+    hint: "或者无需点击即可扫描："
   ours:
     code: 这是我们
     title: 你让检测器检测了自己。
@@ -140,5 +173,6 @@ report:
   scanned: 扫描于 $1
   copyMarkdown: 复制为 Markdown
   copied: 已复制
+  copyFailed: "复制失败，已保存为文件。"
   csv: CSV
   json: JSON

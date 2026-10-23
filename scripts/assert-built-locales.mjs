@@ -2,7 +2,9 @@ import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LOCALE_FILE = /^([a-z]{2}(?:_[A-Z]{2})?)\.yml$/;
+// Chrome's locale codes: a two- or three-letter language (fil), optionally with
+// a two-letter region (pt_BR) or a three-digit UN M.49 one (es_419).
+const LOCALE_FILE = /^([a-z]{2,3}(?:_(?:[A-Z]{2}|\d{3}))?)\.yml$/;
 
 export function sourceLocaleCodes(localesDir) {
   return readdirSync(localesDir)

@@ -53,3 +53,19 @@ export function daysAgo(iso: string | null): string | null {
     style: "narrow",
   }).format(-days, "day");
 }
+
+// "in 30 seconds", in the panel's language and with its plural forms -- the
+// part of a countdown sentence a translator cannot write, since the number
+// is not known until the API refuses us. "long" because this is read once by
+// a screen reader, not glanced at: "in 30 sec." is an abbreviation spoken
+// aloud.
+export function inSeconds(seconds: number): string {
+  return new Intl.RelativeTimeFormat(formatLocale(), { numeric: "always", style: "long" }).format(seconds, "second");
+}
+
+// The visible half of the same countdown: m:ss, which needs no words and so no
+// plural forms, and keeps its width as it ticks under tabular numerals.
+export function clock(seconds: number): string {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}

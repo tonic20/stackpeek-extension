@@ -3,6 +3,7 @@
   import { heldLinkClick } from "../../../lib/held_tabs";
   import { i18n } from "#i18n";
   import { categoryLabel } from "../../../lib/categories";
+  import { marksUnverified } from "../../../lib/unverified";
 
   type App = {
     name: string;
@@ -46,22 +47,14 @@
   // Two rules the design bundle's reference component fused, separated here
   // (design D3).
   //
-  // "unverified" is a COMPARATIVE claim: it means "matched on weaker evidence
-  // than the others here", which is only true of anything if the scan holds
-  // BOTH kinds. Today the catalogue has no verified apps at all -- 0 of 699
-  // rows carry verified_at -- and flagging 8 of 8 would mark everything and
-  // distinguish nothing. This self-corrects the moment triage backfills the
-  // column, with no code change here.
-  //
-  // Both halves are load-bearing, and the second is easy to drop as redundant.
-  // It is not: with every app verified, no .sp-flag can render (nothing
-  // satisfies !verified) but the footnote below is gated on the same value, and
-  // would sit there explaining a marker that is nowhere on screen.
+  // Whether an app carries the "unverified" marker is decided for the whole
+  // scan, not per app -- see lib/unverified.ts, which the Markdown report
+  // shares so the two never disagree.
   //
   // Whether an app LINKS is a separate question, and it is answered by
   // app_store_url alone: how strong the fingerprint match was says nothing
   // about whether the listing exists.
-  const showFlags = $derived(apps.some((a) => a.verified) && apps.some((a) => !a.verified));
+  const showFlags = $derived(marksUnverified(apps));
 </script>
 
 <Section id="apps" heading={i18n.t("apps.heading")} count={apps.length}>
@@ -77,7 +70,7 @@
               {:else}
                 <span class="sp-item__name">{app.name}</span>
               {/if}
-              {#if !app.verified && showFlags}
+              {#if app.verified !== true && showFlags}
                 <span class="sp-flag" title={i18n.t("apps.unverifiedTitle")}>{i18n.t("apps.unverified")}</span>
                 <span class="sr">{i18n.t("apps.unverifiedSr")}</span>
               {/if}

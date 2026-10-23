@@ -51,6 +51,21 @@ describe("toReportCsv", () => {
     expect(verified).toEqual(["yes", "no"]);
   });
 
+  // The panel's rule is presentation, the column is data: a file whose
+  // `verified` meant different things in different scans could not be
+  // compared with another.
+  it("keeps the raw verified field even when the panel would hide every marker", () => {
+    const csv = toReportCsv(scan({
+      apps: [
+        { name: "Judge.me", category: "Reviews", app_store_url: "", verified: false },
+        { name: "Klaviyo", category: "Email", app_store_url: "", verified: false },
+      ],
+      pixels: [], infrastructure: [], theme: null,
+    }));
+
+    expect(csv.trim().split("\n").slice(1).map((r) => r.split(",")[5])).toEqual(["no", "no"]);
+  });
+
   // Only apps carry a confidence, so a blank is the honest cell for the rest --
   // "no" would read as "we checked and it is not verified".
   it("leaves verified blank for findings that have no confidence", () => {
@@ -112,6 +127,49 @@ describe("toReportMarkdown", () => {
 
     expect(md).toContain("- Judge.me — Reviews");
     expect(md).toContain("- Maybe Klaviyo — Email (unverified)");
+  });
+
+  // The panel hides the marker when every app is unverified -- a flag on
+  // everything distinguishes nothing (lib/unverified.ts). The report used to
+  // print it after every app regardless, so the pasted copy flagged apps the
+  // screen it came from had not.
+  it("marks nothing when every app is unverified, as the panel does", () => {
+    const md = toReportMarkdown(scan({
+      apps: [
+        { name: "Judge.me", category: "Reviews", verified: false },
+        { name: "Klaviyo", category: "Email", verified: false },
+      ],
+    }));
+
+    expect(md).not.toContain("unverified");
+    expect(md).toContain("- Judge.me — Reviews\n");
+  });
+
+  // The group headings in the panel are looked up by slug and translated; the
+  // server's English name is only the fallback for a slug this build lacks.
+  it("labels categories the way the panel's group headings do", () => {
+    const md = toReportMarkdown(scan({
+      apps: [
+        { name: "Klaviyo", category: "Email", category_slug: "email-sms", verified: true },
+        { name: "Newcomer", category: "Brand New Category", category_slug: "brand-new", verified: true },
+      ],
+    }));
+
+    expect(md).toContain("- Klaviyo — Email & SMS");
+    expect(md).toContain("- Newcomer — Brand New Category");
+  });
+
+  // ThemeCard's names, not the API's origin enum.
+  it.each([
+    [{ name: null, version: null, origin: "headless" }, "Headless storefront"],
+    [{ name: null, version: null, origin: "custom" }, "Custom theme"],
+    [{ name: "Handover", version: "2.0", origin: "custom" }, "Handover"],
+    [{ name: "Dawn", version: "15.1.0", origin: "forked" }, "Dawn 15.1.0 (customized)"],
+    [{ name: "Dawn", version: "15.3.0", origin: "catalog" }, "Dawn 15.3.0"],
+  ])("names the theme as the panel does: %o", (theme, line) => {
+    const md = toReportMarkdown(scan({ theme }));
+
+    expect(md).toContain(`## Theme\n\n${line}\n`);
   });
 
   // A heading with nothing under it reads as a section that failed, not one

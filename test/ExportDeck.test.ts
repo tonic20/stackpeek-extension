@@ -79,6 +79,52 @@ describe("ExportDeck", () => {
     expect(clicked[0]).toBe("spotonfence.com-stack-2026-08-23.md");
   });
 
+  // The label change is not announced by every screen reader -- a focused
+  // control's name changing is not a live-region update -- so the outcome is
+  // said in a status region that was already in the page.
+  it("announces the copy in a live region", async () => {
+    render(ExportDeck, { scan: scan() });
+    const region = screen.getByRole("status");
+    expect(region.textContent).toBe("");
+
+    await fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
+
+    await vi.waitFor(() => expect(region.textContent).toBe("Copied"));
+  });
+
+  // A file the user did not ask for, with the clipboard still holding whatever
+  // was there before, reads as a broken button unless it is explained.
+  it("says the report went to a file when the clipboard refused", async () => {
+    (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("denied"));
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    const { container } = render(ExportDeck, { scan: scan() });
+    await fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
+
+    await vi.waitFor(() => expect(screen.getByRole("status").textContent).toBe("Couldn't copy — saved as a file instead."));
+    const hint = container.querySelector(".sp-hint")!;
+    expect(hint.textContent).toBe("Couldn't copy — saved as a file instead.");
+    // Already said by the region; read twice otherwise.
+    expect(hint.getAttribute("aria-hidden")).toBe("true");
+    // Not "Copied": nothing was.
+    expect(screen.queryByRole("button", { name: "Copied" })).toBeNull();
+  });
+
+  it("drops the notice once a later copy works", async () => {
+    const write = navigator.clipboard.writeText as ReturnType<typeof vi.fn>;
+    write.mockRejectedValueOnce(new Error("denied"));
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const { container } = render(ExportDeck, { scan: scan() });
+    const copy = screen.getByRole("button", { name: "Copy as Markdown" });
+
+    await fireEvent.click(copy);
+    await vi.waitFor(() => expect(container.querySelector(".sp-hint")).toBeTruthy());
+    await fireEvent.click(copy);
+
+    await vi.waitFor(() => expect(screen.getByRole("status").textContent).toBe("Copied"));
+    expect(container.querySelector(".sp-hint")).toBeNull();
+  });
+
   it("names the downloads after the store and the day it was scanned", async () => {
     const clicked: string[] = [];
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {

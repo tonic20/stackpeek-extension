@@ -1,4 +1,7 @@
 import { i18n } from "#i18n";
+import { categoryLabel } from "./categories";
+import { isCatalogMatch, themeTitle } from "./theme_title";
+import { marksUnverified } from "./unverified";
 
 // The findings report: what the panel detected, in a shape another tool can
 // read. Separate from lib/csv.ts, which exports the store's product catalogue
@@ -10,6 +13,14 @@ import { i18n } from "#i18n";
 // input, and a spreadsheet whose column names change with the reader's browser
 // cannot be shared. This is the same rule CSV_HEADER in lib/csv.ts and
 // catalogueFilename in lib/download.ts already follow, and for the same reason.
+//
+// For the same reason they carry each app's `verified` as the API sent it,
+// and do NOT apply the panel's rule of hiding the marker when every app is
+// unverified (lib/unverified.ts). That rule is about presentation -- a marker
+// on everything distinguishes nothing -- while the field is data, and a
+// column whose meaning changed with the rest of the scan could not be compared
+// across two files. The Markdown report is read rather than parsed, so it
+// follows the panel.
 
 export interface ScanReport {
   domain: string;
@@ -164,19 +175,26 @@ export function toReportMarkdown(scan: ScanReport): string {
     out.push("", `## ${heading}`, "", ...lines);
   };
 
+  // Named the way ThemeCard names it, version and "customized" included only
+  // where the card shows them: a catalog match has a version to give, and a
+  // fork is "Dawn, but changed", which a bare "Dawn" would misreport.
   if (scan.theme) {
-    const name = str(scan.theme.name);
-    const version = str(scan.theme.version);
-    section(i18n.t("theme.heading"), [
-      [name, version].filter(Boolean).join(" ") || str(scan.theme.origin),
-    ]);
+    const theme = scan.theme;
+    const version = isCatalogMatch(theme) ? str(theme.version) : "";
+    const customized = theme.origin === "forked" ? ` (${i18n.t("theme.customized")})` : "";
+    section(i18n.t("theme.heading"), [[themeTitle(theme), version].filter(Boolean).join(" ") + customized]);
   }
 
+  // The panel's own category labels and its own rule for the unverified
+  // marker, so a pasted report never flags an app the screen did not.
+  const apps = scan.apps ?? [];
+  const flagged = marksUnverified(apps);
   section(
     i18n.t("apps.heading"),
-    (scan.apps ?? []).map((a) => {
-      const flag = a.verified === true ? "" : ` (${i18n.t("apps.unverified")})`;
-      return `- ${str(a.name)}${a.category ? ` — ${str(a.category)}` : ""}${flag}`;
+    apps.map((a) => {
+      const flag = flagged && a.verified !== true ? ` (${i18n.t("apps.unverified")})` : "";
+      const category = a.category ? categoryLabel(str(a.category_slug), str(a.category)) : "";
+      return `- ${str(a.name)}${category ? ` — ${category}` : ""}${flag}`;
     }),
   );
 

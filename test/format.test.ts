@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { browser } from "wxt/browser";
-import { formatLocale, number, money, daysAgo } from "../lib/format";
+import { formatLocale, number, money, daysAgo, inSeconds, clock } from "../lib/format";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -90,5 +90,21 @@ describe("format", () => {
     for (const count of [1, 2, 5, 11, 21]) {
       expect(new Intl.PluralRules(locale).select(count)).not.toBe("");
     }
+  });
+
+  // Plural forms come from Intl, which is the point: the count is not known
+  // until the API refuses us, so no translator can write "1 second" and "30
+  // seconds" into a message.
+  it("says a wait in words, with the right plural", () => {
+    expect(inSeconds(30)).toBe("in 30 seconds");
+    expect(inSeconds(1)).toBe("in 1 second");
+  });
+
+  it("shows a countdown as m:ss", () => {
+    expect(clock(30)).toBe("0:30");
+    expect(clock(5)).toBe("0:05");
+    expect(clock(61)).toBe("1:01");
+    expect(clock(0.2)).toBe("0:01");
+    expect(clock(-3)).toBe("0:00");
   });
 });

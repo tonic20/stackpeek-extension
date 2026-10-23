@@ -12,8 +12,12 @@ import { assertReleaseSafe } from "../scripts/assert-release-safe.mjs";
 
 const ORIGINAL_API_BASE = process.env.WXT_API_BASE;
 const ORIGINAL_ALLOW_LOCALHOST = process.env.WXT_ALLOW_LOCALHOST;
+const ORIGINAL_WELCOME_BASE = process.env.WXT_WELCOME_BASE;
 
-function setEnv(key: "WXT_API_BASE" | "WXT_ALLOW_LOCALHOST", value: string | undefined) {
+function setEnv(
+  key: "WXT_API_BASE" | "WXT_ALLOW_LOCALHOST" | "WXT_WELCOME_BASE",
+  value: string | undefined,
+) {
   if (value === undefined) delete process.env[key];
   else process.env[key] = value;
 }
@@ -21,6 +25,7 @@ function setEnv(key: "WXT_API_BASE" | "WXT_ALLOW_LOCALHOST", value: string | und
 afterEach(() => {
   setEnv("WXT_API_BASE", ORIGINAL_API_BASE);
   setEnv("WXT_ALLOW_LOCALHOST", ORIGINAL_ALLOW_LOCALHOST);
+  setEnv("WXT_WELCOME_BASE", ORIGINAL_WELCOME_BASE);
 });
 
 describe("scripts/assert-release-safe.mjs", () => {
@@ -45,6 +50,22 @@ describe("scripts/assert-release-safe.mjs", () => {
   it("passes with no WXT_API_BASE when WXT_ALLOW_LOCALHOST is set", () => {
     setEnv("WXT_API_BASE", undefined);
     setEnv("WXT_ALLOW_LOCALHOST", "1");
+    expect(() => assertReleaseSafe()).not.toThrow();
+  });
+
+  it("throws on WXT_WELCOME_BASE left pointed at localhost", () => {
+    setEnv("WXT_API_BASE", "https://api.stackpeek.app");
+    setEnv("WXT_WELCOME_BASE", "http://localhost:3071");
+    setEnv("WXT_ALLOW_LOCALHOST", undefined);
+    expect(() => assertReleaseSafe()).toThrow(/WXT_WELCOME_BASE/);
+  });
+
+  it("passes with WXT_WELCOME_BASE unset or emptied", () => {
+    setEnv("WXT_API_BASE", "https://api.stackpeek.app");
+    setEnv("WXT_ALLOW_LOCALHOST", undefined);
+    setEnv("WXT_WELCOME_BASE", undefined);
+    expect(() => assertReleaseSafe()).not.toThrow();
+    setEnv("WXT_WELCOME_BASE", "");
     expect(() => assertReleaseSafe()).not.toThrow();
   });
 });

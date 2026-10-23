@@ -1,11 +1,17 @@
-// The four states that end a scan: no further rounds will change them, and
+// The states that end a scan: no further rounds will change them, and
 // each carries its own code chip, copy and action (panel design D7).
 // Rate limiting is one of them in its own right rather than an error with
 // different wording, which is what lets it show a 429 chip.
 export type TerminalStatus =
   | "not_shopify"
   | "cant_scan"
+  // The detect failed, each for a different reason the user can act on
+  // differently (lib/api.ts). "error" is the network one -- the request never
+  // got an answer -- and keeps its old name because it was the only one.
   | "error"
+  | "offline"
+  | "timeout"
+  | "server_error"
   | "rate_limited"
   // Chrome refused to inject into this tab. Recoverable, but only by the
   // toolbar click that grants activeTab -- so it is terminal as far as the

@@ -1,12 +1,13 @@
 formatLocale: pt-BR
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Shopify theme detector e app detector em um: tema, apps e rastreadores de qualquer loja. Exporte CSV, sem salvar histórico."
+extName: "Shopify Theme Detector - Detector de tema"
+extDescription: "Quer descobrir tema Shopify? Veja apps e rastreadores de qualquer loja com detector de apps, verificador de pixels e exportação CSV."
 actionTitle: Detectar tema e apps desta loja
 
 panel:
   scanning: Analisando…
   rescan: Analisar esta página novamente
-  privacy: Privacidade
+  rate: Avaliar
+  feedback: Feedback
   held: Ainda exibindo $1 — a página que você abriu não foi analisada.
 theme:
   heading: Tema
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Mudar para o tema escuro
   toLight: Mudar para o tema claro
+autoScan:
+  label: Analisar automaticamente ao trocar de aba
+  note: "Precisa de acesso a todos os sites."
+  offer:
+    title: "Analisar lojas sem clicar?"
+    body: "As abas são analisadas ao alternar entre elas, e o ícone marca as lojas Shopify. Precisa de acesso a todos os sites."
+    accept: "Ativar"
+    dismiss: "Não, obrigado"
+shortcut:
+  label: "Atalho de teclado"
+  none: "Nenhum atalho de teclado"
+  change: "Alterar ou desativar"
+  set: "Definir um"
 terminal:
   notShopify:
     code: sem correspondência
     title: Não é uma loja Shopify.
     body: A página foi comparada ao catálogo e não houve correspondência. Nada dela foi armazenado.
+    hint: "O Shopify pode não ser detectado em lojas headless ou páginas ainda carregando."
     action: Analisar novamente
   cantScan:
     code: página ilegível
@@ -119,17 +134,35 @@ terminal:
   error:
     code: rede
     title: Não foi possível acessar o detector.
-    body: Os sinais da página foram lidos, mas a API não respondeu. Nada foi armazenado.
+    body: "Nosso servidor não respondeu. Verifique sua conexão e tente novamente."
+    action: Tentar novamente
+  offline:
+    code: offline
+    title: Você está offline.
+    body: "Reconecte-se e tente novamente."
+    action: Tentar novamente
+  timeout:
+    code: tempo esgotado
+    title: O detector demorou demais.
+    body: "Nosso servidor não respondeu a tempo. Tente novamente em instantes."
+    action: Tentar novamente
+  serverError:
+    code: servidor
+    title: O detector teve um problema.
+    body: "A falha é nossa, não desta loja. Tente novamente em instantes."
     action: Tentar novamente
   rateLimited:
     code: "429"
     title: Aguarde um pouco e tente de novo.
     body: Análises demais em pouco tempo. O limite é redefinido automaticamente.
     action: Tentar novamente
+  wait: Você poderá tentar de novo $1.
   needsPermission:
     code: permissão
     title: Abra o Stackpeek nesta loja.
     body: Clique no ícone do Stackpeek na barra de ferramentas para analisar esta página. O navegador concede acesso a uma loja por vez, por isso o painel não pode fazer isso por você.
+    shortcut: "O atalho $1 faz o mesmo."
+    hint: "Ou analise sem clicar:"
   ours:
     code: somos nós
     title: Você apontou o detector para ele mesmo.
@@ -140,5 +173,6 @@ report:
   scanned: Analisado em $1
   copyMarkdown: Copiar como Markdown
   copied: Copiado
+  copyFailed: Não foi possível copiar — salvo como arquivo.
   csv: CSV
   json: JSON

@@ -156,17 +156,17 @@ No other command, environment variable or manual step is involved.
 
 ```
 .output/firefox-mv3/                       loadable unpacked extension
-.output/extension-0.4.1-firefox.zip        the submitted package
-.output/extension-0.4.1-sources.zip        this archive
+.output/extension-0.7.2-firefox.zip        the submitted package
+.output/extension-0.7.2-sources.zip        this archive
 ```
 
 Two clean builds run in the same shell produce byte-identical output —
-verified 2026-08-18 by building, deleting `.output/`, and rebuilding. Both
+verified 2026-10-23 by building, deleting `.output/`, and rebuilding. Both
 runs produced the same chunk filename and the same hashes:
 
 ```
-b63f32a5bd5006d68216fee627dddc8ba2c83eca91dcaddf7813d1894cfcee76  .output/firefox-mv3/background.js
-429053d92270fe2cb3323e42e8dcd5b1f5db707b0eeba619b7c0ff4f0bb4fa92  .output/firefox-mv3/chunks/sidepanel-Cbg6EO7m.js
+8cfb65704fc9f55b0c5df5e4cf9f183b25499e09a2a37ff4c610b12b2def04a0  .output/firefox-mv3/background.js
+ad3972e519d37dbc5af350e2828b75a7e9c9d6d281565b2168c6b1e672aa651a  .output/firefox-mv3/chunks/sidepanel-UQXh1BGT.js
 ```
 
 Check yours with:

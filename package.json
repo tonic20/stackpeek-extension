@@ -1,7 +1,7 @@
 {
   "name": "extension",
-  "version": "0.6.1",
-  "description": "Stackpeek Shopify theme & app detector extension",
+  "version": "0.7.2",
+  "description": "Use this Shopify theme detector to see any store's theme, apps and trackers: an app detector and pixel checker with CSV export.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -22,26 +22,26 @@
   },
   "_overrides_note": "web-ext is wxt 0.21's optional peer for launching a dev browser (npm run dev / dev:firefox). It pins adm-zip and shell-quote to ranges that exclude the patched releases, so npm audit fix is a no-op and these overrides force the fixed versions instead. Neither is bundled into the extension -- they run only in the local dev launcher. Extension CI gates on an unscoped `npm audit`, so these are load-bearing: removing one turns CI red rather than merely raising the noise. Drop each once web-ext ships a bump that covers it, which `npm audit` passing without it will confirm.",
   "overrides": {
-    "adm-zip": "^0.6.0",
-    "shell-quote": "^1.10.0"
+    "adm-zip": "^0.6.1",
+    "shell-quote": "^1.11.0"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/svelte": "^5.4.2",
-    "@types/chrome": "^0.2.2",
+    "@types/chrome": "^0.3.5",
     "@types/jsdom": "^30.0.0",
-    "@types/node": "^24.13.3",
-    "@wxt-dev/i18n": "^0.2.7",
+    "@types/node": "^24.19.2",
+    "@wxt-dev/i18n": "^0.2.8",
     "@wxt-dev/module-svelte": "^2.0.0",
     "audit-ci": "7.1.0",
-    "jsdom": "^30.0.1",
-    "svelte": "^5.56.9",
+    "jsdom": "^30.1.2",
+    "svelte": "^5.57.2",
     "svelte-check": "^4.7.5",
     "typescript": "^5.6.3",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.11",
-    "web-ext": "^10.5.0",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4",
+    "web-ext": "^10.8.0",
     "wxt": "^0.21.4"
   }
 }

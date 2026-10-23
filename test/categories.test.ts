@@ -3,8 +3,14 @@ import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseMessagesText, generateChromeMessages } from "@wxt-dev/i18n/build";
 import { categoryLabel, CATEGORY_SLUGS } from "../lib/categories";
+import { UI_LOCALES } from "./ui_locales";
 
 const LOCALES_DIR = resolve(__dirname, "../locales");
+// Manifest-only catalogs carry no panel strings at all (see ui_locales.ts);
+// their labels are en.yml's, so en already covers them.
+const uiCatalogs = readdirSync(LOCALES_DIR)
+  .filter((f) => UI_LOCALES.includes(f))
+  .sort();
 
 const messagesOf = (file: string) =>
   generateChromeMessages(
@@ -45,7 +51,7 @@ describe("category labels", () => {
   // setup.ts and renders a blank heading in a real browser, and neither the
   // key-parity check in locales.test.ts nor svelte-check can see it -- parity
   // only proves the locales agree with each other, not that they cover the map.
-  for (const file of readdirSync(LOCALES_DIR).filter((f) => f.endsWith(".yml")).sort()) {
+  for (const file of uiCatalogs) {
     it(`${file} defines a label for every mapped category`, () => {
       const messages = messagesOf(file);
       const missing = CATEGORY_SLUGS.filter((slug) => !messages[messageName(slug)]?.message?.trim());
@@ -69,7 +75,7 @@ describe("category labels", () => {
 describe("theme origin labels", () => {
   const ORIGINS = ["catalog", "forked", "custom", "headless"];
 
-  for (const file of readdirSync(LOCALES_DIR).filter((f) => f.endsWith(".yml")).sort()) {
+  for (const file of uiCatalogs) {
     it(`${file} defines every theme origin`, () => {
       const messages = messagesOf(file);
       const missing = ORIGINS.filter((o) => !messages[`theme_origin_${o}`]?.message?.trim());

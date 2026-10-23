@@ -56,14 +56,22 @@ export default defineConfig({
       128: "icon-128.png",
     };
 
+    // The welcome page (lib/welcome.ts) connects back for the live pin state.
+    // Chromium only: Firefox does not support externally_connectable. It is
+    // not a permission and adds no install warning. The default must match
+    // WELCOME_BASE there, which cannot be imported here: it reads
+    // import.meta.env, and this file runs in Node.
+    const welcomeBase = process.env.WXT_WELCOME_BASE ?? "https://stackpeek.app";
+
     return {
-      // Both strings are the store listing title and summary, decided in
-      // docs/launch-research.md §7.1. They now live in locales/en.yml, but they
-      // still ship in the build -- __MSG_ placeholders are resolved from
-      // _locales/ at install time, not fetched -- so changing either still
-      // means another extension release, not a store-field edit. What the move
-      // buys is the store dashboards' language dropdown, which offers only
-      // locales present as _locales/<code>/ in the upload.
+      // Both strings are the store listing title and summary. They now live in
+      // locales/*.yml, generated from docs/store-listing/_locales by
+      // scripts/build-extension-locales.ts, but they still ship in the build
+      // -- __MSG_ placeholders are resolved from _locales/ at install time,
+      // not fetched -- so changing either still means another extension
+      // release, not a store-field edit. What the move buys is the store
+      // dashboards' language dropdown, which offers only locales present as
+      // _locales/<code>/ in the upload.
       default_locale: "en",
       name: "__MSG_extName__",
       description: "__MSG_extDescription__",
@@ -72,10 +80,46 @@ export default defineConfig({
         env.mode === "development"
           ? ["http://localhost:3070/*", "https://api.stackpeek.app/*"]
           : ["https://api.stackpeek.app/*"],
+      // Every site, but only if the user asks for it: the panel's "Scan
+      // automatically as I switch tabs" switch requests these at runtime
+      // (lib/host_access.ts) and can hand them back. Optional host
+      // permissions add no install-time warning -- checked against Chrome's
+      // own chrome.management.getPermissionWarningsByManifest, which lists
+      // only the api.stackpeek.app line with these present and "Read and
+      // change all your data on all websites" with the same patterns made
+      // required. Nobody who leaves the switch off is asked for anything new.
+      //
+      // Same key on both browsers. Firefox has read it in MV3 since 128,
+      // below strict_min_version, and lists it on the add-on's Permissions
+      // tab, where the user can grant or revoke it without the panel.
+      optional_host_permissions: ["https://*/*", "http://*/*"],
       icons,
       action: {
         default_title: "__MSG_actionTitle__",
         default_icon: icons,
+      },
+      ...(!firefox && welcomeBase
+        ? { externally_connectable: { matches: [`${new URL(welcomeBase).origin}/*`] } }
+        : {}),
+      // A keyboard way to do what the toolbar click does. _execute_action,
+      // not a named command: with no popup it dispatches action.onClicked,
+      // so the panel opens through the same handler, the shortcut grants
+      // activeTab exactly as the click does ("executing a keyboard shortcut
+      // from the commands API" is one of activeTab's gestures), and an
+      // already-open panel rescans through lib/action_click.ts. A named
+      // command would need its own path to all three, and commands.onCommand
+      // never fires for _execute_action anyway.
+      //
+      // Alt+Shift+S: Chrome's own Alt+Shift shortcuts are T, I, A and N, and
+      // the Mac Option+Shift ones also need Command; Firefox has none on S.
+      // Only a suggestion -- both browsers let the user rebind it, and drop
+      // it silently if another extension already holds it. Which is also why
+      // actionTitle does not name it: the tooltip would go on saying
+      // Alt+Shift+S after the user had changed it.
+      commands: {
+        _execute_action: {
+          suggested_key: { default: "Alt+Shift+S" },
+        },
       },
       // Firefox-only, and it must stay that way: WXT does NOT strip
       // browser_specific_settings from the Chromium builds, where Chrome logs
@@ -107,13 +151,28 @@ export default defineConfig({
                 // required): the anonymous install_id. lib/install_id.ts honours
                 // a refusal by falling back to an id that is never persisted.
                 //
-                // Deliberately NOT declared: websiteActivity. It reads as visit
-                // tracking, which would contradict /privacy's "your browsing
-                // history is not collected" — and that promise is true:
-                // observations carry the store, not the install that reported it.
+                // browsingActivity (optional, and asked for only by the
+                // auto-scan switch): "information about the websites users
+                // visit, such as specific URLs, domains". With auto-scan on,
+                // every tab the user switches to while the panel is open is
+                // scanned without a click, so the origins of pages they visit
+                // reach the API as they browse -- which is that, even though
+                // observations still carry the store and not the install.
+                // lib/host_access.ts requests it at runtime in the same
+                // permissions.request as the all-sites origins (Firefox 140+
+                // takes data_collection there), treats the switch as on only
+                // when both are granted, and removes both when it is turned
+                // off. A user who never turns auto-scan on is never asked, and
+                // a scan they start with a click sends nothing it did not
+                // send before.
+                //
+                // Not websiteActivity, which an earlier version of this note
+                // named for the same worry: Firefox defines it as "interactions
+                // and mouse and keyboard activity, such as scrolling, clicking,
+                // typing", none of which is collected in any mode.
                 data_collection_permissions: {
                   required: ["websiteContent"],
-                  optional: ["technicalAndInteraction"],
+                  optional: ["technicalAndInteraction", "browsingActivity"],
                 },
               },
               // No gecko_android: Firefox for Android does not implement

@@ -50,6 +50,21 @@ export function assertReleaseSafe(env = process.env) {
         "non-releasable compile check (e.g. CI), set WXT_ALLOW_LOCALHOST=1 explicitly.",
     );
   }
+
+  // The same hazard one variable over. Unset is fine -- lib/welcome.ts then
+  // defaults to https://stackpeek.app -- but a WXT_WELCOME_BASE still exported
+  // from testing the welcome page locally would ship a build that opens the
+  // developer's machine on every install and lets it connect to the extension.
+  const welcomeBase = env.WXT_WELCOME_BASE;
+
+  if (welcomeBase && isLocalhost(welcomeBase)) {
+    throw new Error(
+      `Production build with WXT_WELCOME_BASE="${welcomeBase}", which points at ` +
+        "localhost: every install would open the welcome page there. Unset it " +
+        "for a release. If this really is a non-releasable build, set " +
+        "WXT_ALLOW_LOCALHOST=1 explicitly.",
+    );
+  }
 }
 
 // Only run as a CLI check when executed directly -- importing this module

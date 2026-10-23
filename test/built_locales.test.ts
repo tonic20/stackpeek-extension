@@ -38,6 +38,26 @@ describe("built locales", () => {
     expect(sourceLocaleCodes(locales)).toEqual(["de", "en", "pt_BR"]);
   });
 
+  // Two of the Chrome Web Store's 52 codes fall outside the language_REGION
+  // shape: Filipino has a three-letter language code and Latin American
+  // Spanish a numeric region. A narrower pattern skips their catalogs as if
+  // they were not locales, and the check then reports their built folders as
+  // extra rather than matching them.
+  it("reads three-letter languages and numeric regions", () => {
+    const { locales } = fixture(["fil", "es_419", "es", "zh_TW"], []);
+
+    expect(sourceLocaleCodes(locales)).toEqual(["es", "es_419", "fil", "zh_TW"]);
+  });
+
+  it("ignores files that are not locale catalogs", () => {
+    const { locales } = fixture(["en"], []);
+    writeFileSync(join(locales, "README.yml"), "");
+    writeFileSync(join(locales, "en_us.yml"), "");
+    writeFileSync(join(locales, "es_4190.yml"), "");
+
+    expect(sourceLocaleCodes(locales)).toEqual(["en"]);
+  });
+
   it("accepts a build with exactly the source locale set", () => {
     const { locales, build } = fixture(["en", "pt_BR"], ["pt_BR", "en"]);
 
@@ -48,6 +68,12 @@ describe("built locales", () => {
     const { locales, build } = fixture(["de", "en"], ["en"]);
 
     expect(() => assertBuiltLocaleCodes(locales, build)).toThrow(/missing: de/);
+  });
+
+  it("matches builds that include fil and es_419", () => {
+    const { locales, build } = fixture(["en", "es_419", "fil"], ["fil", "en", "es_419"]);
+
+    expect(assertBuiltLocaleCodes(locales, build)).toEqual(["en", "es_419", "fil"]);
   });
 
   it("reports extra built locales", () => {

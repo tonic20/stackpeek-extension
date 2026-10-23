@@ -20,6 +20,35 @@ describe("TerminalState", () => {
     expect(container.querySelector('[role="status"]')).toBeTruthy();
   });
 
+  // The old state was a dead end. What it can add honestly is what the
+  // detector reads and why a real store could still come back "no match" --
+  // nothing it does not know.
+  it("says what the detector reads, and why a store might not show it yet", () => {
+    const { container } = render(TerminalState, { status: "not_shopify", onretry: () => {} });
+
+    const bodies = [...container.querySelectorAll(".sp-state__body")].map((p) => p.textContent);
+    expect(bodies).toEqual([
+      "Checked against the catalogue and no match. Nothing about the page was stored.",
+      "Shopify may not be detected on headless stores or pages still loading.",
+    ]);
+  });
+
+  // Our own site is not a store that might be Shopify after all.
+  it("does not add the hint when pointed at our own site", () => {
+    const { container } = render(TerminalState, { status: "not_shopify", domain: "stackpeek.app", onretry: () => {} });
+
+    expect(container.querySelectorAll(".sp-state__body")).toHaveLength(1);
+  });
+
+  it.each(["cant_scan", "error", "offline", "timeout", "server_error", "rate_limited", "needs_permission"] as const)(
+    "keeps %s to its one line of body copy",
+    (status) => {
+      const { container } = render(TerminalState, { status, onretry: () => {} });
+
+      expect(container.querySelectorAll(".sp-state__body")).toHaveLength(1);
+    },
+  );
+
   // Nothing about the page will change by asking again, so there is no action
   // to offer -- and for the same reason the header hides its rescan button in
   // this state.
@@ -40,6 +69,22 @@ describe("TerminalState", () => {
     expect(container.querySelector('[role="alert"]')).toBeTruthy();
   });
 
+  // The old single error state, split by what the user can do about each.
+  // All three are alerts with a primary Retry: each can come right on its own.
+  it.each([
+    ["offline", "offline", "You're offline.", /Reconnect/],
+    ["timeout", "timeout", "The detector took too long.", /didn't answer in time/],
+    ["server_error", "server", "The detector had a problem.", /on our side, not this store's/],
+  ] as const)("renders %s with its own chip, title and advice", (status, code, title, body) => {
+    const { container } = render(TerminalState, { status, onretry: () => {} });
+
+    expect(screen.getByText(code).classList.contains("sp-state__code")).toBe(true);
+    expect(screen.getByText(title).classList.contains("sp-state__title")).toBe(true);
+    expect(screen.getByText(body).classList.contains("sp-state__body")).toBe(true);
+    expect(screen.getByRole("button", { name: "Retry" }).classList.contains("sp-btn--primary")).toBe(true);
+    expect(container.querySelector('[role="alert"]')).toBeTruthy();
+  });
+
   it("renders rate limiting as its own state, with its own code chip", () => {
     const { container } = render(TerminalState, { status: "rate_limited", onretry: () => {} });
 
@@ -56,6 +101,45 @@ describe("TerminalState", () => {
 
     expect(container.querySelector(".sp-state__list")).toBeNull();
     expect(screen.queryByText(/retry after/i)).toBeNull();
+  });
+
+  // The API asked us to wait; a Retry that works immediately invites a second
+  // refusal. The count is visible but kept out of the accessible name, which
+  // would otherwise change every second under the user's focus.
+  it("holds Retry back through a rate-limit wait, with a countdown", async () => {
+    vi.useFakeTimers();
+    const onretry = vi.fn();
+    render(TerminalState, { status: "rate_limited", retryAt: Date.now() + 30_000, onretry });
+
+    const button = screen.getByRole("button", { name: "Retry" });
+    expect(button).toBeDisabled();
+    expect(button.textContent).toContain("0:30");
+    expect(button.querySelector('[aria-hidden="true"]')!.textContent).toBe("0:30");
+
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect(button.textContent).toContain("0:18");
+
+    await vi.advanceTimersByTimeAsync(18_000);
+    expect(button).not.toBeDisabled();
+    expect(button.textContent!.trim()).toBe("Retry");
+    vi.useRealTimers();
+  });
+
+  // The state is an alert, so a ticking number inside it would be re-announced
+  // every second. A screen reader gets the wait once, in words.
+  it("says the wait once, in words, for a screen reader", () => {
+    vi.useFakeTimers();
+    render(TerminalState, { status: "rate_limited", retryAt: Date.now() + 30_000, onretry: () => {} });
+
+    expect(screen.getByText("You can try again in 30 seconds.").classList.contains("sr")).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("offers Retry at once when there is nothing to wait for", () => {
+    render(TerminalState, { status: "rate_limited", retryAt: 0, onretry: () => {} });
+
+    expect(screen.getByRole("button", { name: "Retry" })).not.toBeDisabled();
+    expect(screen.queryByText(/try again in/)).toBeNull();
   });
 
   // No action button, for the same reason cant_scan has none: pressing it could

@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { postDetect, RateLimitError } from "../../lib/api";
+  import { postDetect, ApiError, NetworkError, OfflineError, RateLimitError, TimeoutError } from "../../lib/api";
+  import type { DetectResponse } from "../../lib/api";
   import { getInstallId } from "../../lib/install_id";
   import { collectFromActiveTab } from "../../lib/collect_bridge";
   import { runRounds } from "../../lib/detect_runner";
   import { InjectionDeniedError } from "../../lib/errors";
-  import { watchActiveTab } from "../../lib/tab_watcher";
+  import { watchActiveTab, type ScanTrigger } from "../../lib/tab_watcher";
   import { extensionVersion } from "../../lib/version";
   import type { PanelStatus, TerminalStatus } from "../../lib/panel_status";
   import { fetchCatalogueDigest, fetchCataloguePage, fetchCollectionPages, BEST_SELLER_LIMIT } from "../../lib/catalogue_bridge";
@@ -24,8 +25,16 @@
   import Skeleton from "./components/Skeleton.svelte";
   import TerminalState from "./components/TerminalState.svelte";
   import ThemeToggle from "./components/ThemeToggle.svelte";
+  import AutoScanSwitch from "./components/AutoScanSwitch.svelte";
+  import AutoScanOffer from "./components/AutoScanOffer.svelte";
+  import { hostAccess, type HostAccess } from "../../lib/host_access";
+  import { autoScanOffer, type AutoScanOffer as Offer } from "../../lib/auto_scan_offer";
+  import { shortcut as actionShortcut, type Shortcut } from "../../lib/shortcut";
+  import ShortcutRow from "./components/ShortcutRow.svelte";
   import { i18n } from "#i18n";
   import { applyDocumentLocale } from "../../lib/locale";
+  import { heldLinkClick } from "../../lib/held_tabs";
+  import { FEEDBACK_URL, SITE_URL, reviewUrl } from "../../lib/store_links";
 
   applyDocumentLocale();
 
@@ -42,12 +51,15 @@
     cataloguePage = fetchCataloguePage,
     collectionPages = fetchCollectionPages,
     storefrontExport = fetchStorefrontExport,
+    access = hostAccess,
+    offer = autoScanOffer,
+    shortcut = actionShortcut,
   }: {
-    runner?: () => Promise<{ signals: unknown; url: string | undefined }>;
+    runner?: (onUrl?: (url: string | undefined) => void) => Promise<{ signals: unknown; url: string | undefined }>;
     autostart?: boolean;
     delays?: number[];
     watch?: (
-      onChange: () => void,
+      onChange: (trigger?: ScanTrigger) => void,
       opts?: { onHold?: (holding: boolean) => void },
     ) => { stop: () => void };
     catalogue?: () => Promise<CatalogueDigest>;
@@ -56,6 +68,9 @@
     cataloguePage?: (page: number) => Promise<CatalogueProduct[] | null>;
     collectionPages?: () => Promise<CollectionPages | null>;
     storefrontExport?: (onProgress: (done: number) => void) => Promise<ExportWalk | null>;
+    access?: HostAccess;
+    offer?: Offer;
+    shortcut?: Shortcut;
   } = $props();
 
   let status: PanelStatus = $state("idle");
@@ -97,7 +112,59 @@
   // than acted on immediately -- see handleTabChange below. A plain let, not
   // $state: nothing in the template reads it, so making it reactive would buy
   // nothing and imply it is rendered.
-  let pendingRescan = false;
+  //
+  // Holds the trigger rather than a flag, so a queued rescan keeps what it was:
+  // an automatic one still has to pass the consent check when it runs, and a
+  // click queued behind an automatic one is still a click.
+  let pendingRescan: ScanTrigger | null = null;
+  const stronger = (a: ScanTrigger | null, b: ScanTrigger): ScanTrigger =>
+    a === "click" || b === "click" ? "click" : "auto";
+
+  // The API refused us with a 429 and the panel is waiting it out. While it
+  // is, nothing starts a scan: not Retry or the header button, which are
+  // disabled, and not a tab change, which is the one that matters -- the
+  // watcher fires on every switch and navigation, and each of those is up to
+  // four more requests at a limit that has already said no. A scan asked for
+  // in the meantime is remembered and run once when the wait is over, because
+  // whatever is on screen by then describes a page the user has left.
+  //
+  // `coolUntil` is the moment it ends, for the countdown; `cooling` is the
+  // reactive flag the template reads, since Date.now() is not.
+  let cooling = $state(false);
+  let coolUntil = $state(0);
+  let coolTimer: ReturnType<typeof setTimeout> | undefined;
+  let deferredRescan: ScanTrigger | null = null;
+
+  function startCooldown(ms: number) {
+    cooling = true;
+    coolUntil = Date.now() + ms;
+    clearTimeout(coolTimer);
+    coolTimer = setTimeout(endCooldown, ms);
+  }
+
+  function endCooldown() {
+    cooling = false;
+    coolUntil = 0;
+    if (deferredRescan) {
+      const trigger = deferredRescan;
+      deferredRescan = null;
+      handleTabChange(trigger);
+    }
+  }
+
+  // Wraps the send rather than reading the error in runDetection's catch, which
+  // only ever sees a 429 on the FIRST round. A later round's refusal is
+  // swallowed by runRounds to keep the result on screen (lib/detect_runner.ts),
+  // and the limit is just as spent then: without this the next tab switch
+  // would go straight back to the API that has just refused it.
+  async function send(payload: Record<string, unknown>): Promise<DetectResponse> {
+    try {
+      return await postDetect(payload);
+    } catch (e) {
+      if (e instanceof RateLimitError) startCooldown(e.retryAfterMs);
+      throw e;
+    }
+  }
 
   const version = extensionVersion();
 
@@ -113,14 +180,36 @@
     }
   }
 
-  export async function runDetection(run = runner) {
+  // trigger is "click" for everything the user asked for in the panel --
+  // opening it, Retry, the header button -- and is carried through for the
+  // tab watcher's own rescans, which arrive via handleTabChange.
+  export async function runDetection(run = runner, trigger: ScanTrigger = "click") {
+    // The one gate every path into a scan passes through -- Retry, the header
+    // button, a tab change, a click on the toolbar icon, a rescan queued
+    // behind the previous run -- so none of them can slip past the wait.
+    if (cooling) {
+      deferredRescan = stronger(deferredRescan, trigger);
+      return;
+    }
     status = "loading";
     refining = true;
+    // The header names the store the body describes, and the body is about to
+    // be a skeleton for a page we have not read yet. Leaving the last store's
+    // name there through a scan of the next one says the skeleton is that
+    // store's. It is blanked here and filled in as soon as the collector knows
+    // which tab it is reading -- the same origin the scan sends, learned
+    // before the injection rather than after it (lib/collect_bridge.ts). Only
+    // while nothing has rendered: from the first result on, onUpdate owns the
+    // header, so that it always names what is on screen.
+    domain = "";
+    const onUrl = (url: string | undefined) => {
+      if (status === "loading") domain = hostnameOf(url);
+    };
     try {
       const install_id = await getInstallId();
       await runRounds({
-        collect: run,
-        send: postDetect,
+        collect: () => run(onUrl),
+        send,
         installId: install_id,
         delays,
         onNoSignals: () => { status = "cant_scan"; domain = ""; },
@@ -135,8 +224,17 @@
       // Each of these is its own status rather than an error carrying different
       // copy, so each can have its own code chip and wording. TerminalState
       // owns all of it; nothing here formats a message.
+      //
+      // Most specific first: OfflineError is a NetworkError, and every API
+      // failure is an ApiError. Anything that is not one at all -- a fault of
+      // ours before the request was made -- keeps the old network wording,
+      // which is what it got before the failures were told apart.
       if (e instanceof InjectionDeniedError) status = "needs_permission";
       else if (e instanceof RateLimitError) status = "rate_limited";
+      else if (e instanceof TimeoutError) status = "timeout";
+      else if (e instanceof OfflineError) status = "offline";
+      else if (e instanceof NetworkError) status = "error";
+      else if (e instanceof ApiError) status = "server_error";
       else status = "error";
       // The header names the store the body describes, and none of these
       // states describes a store. Leaving the last one there puts "Open
@@ -148,8 +246,9 @@
     } finally {
       refining = false;
       if (pendingRescan) {
-        pendingRescan = false;
-        runDetection();
+        const queued = pendingRescan;
+        pendingRescan = null;
+        handleTabChange(queued);
       }
     }
   }
@@ -307,12 +406,34 @@
   // runDetection here would start a second concurrent runRounds loop racing the
   // first over status, data, domain and refining, which is exactly the race the
   // hidden rescan button exists to make unreachable (design D6).
-  function handleTabChange() {
+  //
+  // An automatic rescan on Firefox also has to pass blocksAutoScan: with the
+  // browsingActivity consent withdrawn but the access to all sites still
+  // granted, the tab is treated exactly as one without access -- nothing is
+  // collected or sent, and the body asks for the click that a click-triggered
+  // scan, or the shortcut, then answers as usual.
+  async function handleTabChange(trigger: ScanTrigger = "auto") {
     if (refining) {
-      pendingRescan = true;
+      pendingRescan = stronger(pendingRescan, trigger);
       return;
     }
-    runDetection();
+    if (trigger === "auto") {
+      const blocked = await access.blocksAutoScan();
+      // Re-checked after the await, whichever way it went: a second change
+      // arriving while the first was being checked has started a run by now,
+      // and starting another would be the concurrent-loop race the queue
+      // exists to prevent. Queued, it runs -- and is checked -- in turn.
+      if (refining) {
+        pendingRescan = stronger(pendingRescan, trigger);
+        return;
+      }
+      if (blocked) {
+        status = "needs_permission";
+        domain = "";
+        return;
+      }
+    }
+    runDetection(runner, trigger);
   }
 
   $effect(() => {
@@ -321,6 +442,101 @@
   });
 
   $effect(() => { if (autostart && status === "idle") runDetection(); });
+
+  // Whether the user has given the panel access to every site, so a tab switch
+  // can scan without a toolbar click (lib/host_access.ts). null where the
+  // browser has no permissions API, which hides the switch rather than offer
+  // one that cannot work.
+  let autoScan: boolean | null = $state(null);
+
+  // The one place the answer lands, from the switch and from the browser's own
+  // onAdded/onRemoved alike -- Chrome fires both for a grant made here, and
+  // only a change of answer may act, or the grant would scan twice.
+  //
+  // A grant while the body says needs_permission is the user doing what that
+  // state asked, by the other route it offers: scan now rather than leave the
+  // instruction standing until they switch tabs. Through handleTabChange, so
+  // it queues behind a scan in flight like every other trigger.
+  function applyAutoScan(granted: boolean | null) {
+    const was = autoScan;
+    autoScan = granted;
+    if (granted === true && was !== true && status === "needs_permission") handleTabChange("click");
+  }
+
+  // Called from the switch's click handler, and request() makes the browser
+  // call synchronously inside it: the user gesture ends at the first await.
+  function setAutoScan(on: boolean) {
+    (on ? access.request() : access.remove())
+      .then(() => access.has())
+      .then(applyAutoScan);
+  }
+
+  let offerOpen = $state(false);
+  $effect(() => {
+    let live = true;
+    offer.pending().then((p) => { if (live) offerOpen = p; });
+    return () => { live = false; };
+  });
+  function closeOffer(accept: boolean) {
+    if (accept) setAutoScan(true);
+    offerOpen = false;
+    offer.close();
+  }
+  const offering = $derived.by(() => offerOpen && autoScan === false && status === "result");
+
+  // null where there is no commands API, which hides the row.
+  let shortcutKey: string | null = $state(null);
+  $effect(() => {
+    let live = true;
+    const reread = () => shortcut.read().then((k) => { if (live) shortcutKey = k; });
+    reread();
+    const watcher = shortcut.watch(reread);
+    return () => { live = false; watcher.stop(); };
+  });
+  function setShortcut(on: boolean) {
+    shortcut.setEnabled(on).catch(() => {}).then(() => shortcut.read()).then((k) => { shortcutKey = k; });
+  }
+  const showAutoSwitch = $derived.by(() => autoScan !== null && !offering && !(status === "needs_permission" && autoScan === false));
+
+  $effect(() => {
+    let live = true;
+    access.has().then((granted) => { if (live) applyAutoScan(granted); });
+    const watcher = access.watch(applyAutoScan);
+    return () => { live = false; watcher.stop(); };
+  });
+
+  // The header's rescan button is replaced by the scan indicator for as long
+  // as the scan runs (design D5, and the re-entrancy guard below), so pressing
+  // it from the keyboard removed the focused element from under the user and
+  // dropped focus to <body> -- the next Tab started again from the top of the
+  // panel. Focus follows the slot instead: onto the indicator while the scan
+  // runs, which also reads "Scanning…" out, and back onto the button when it
+  // returns. A scan that ends with no button to return to (cant_scan,
+  // needs_permission) leaves focus on the body that now explains why.
+  //
+  // Only when the button had focus as it was pressed: a scan started any other
+  // way -- a tab switch, a toolbar click -- must not pull focus to the header
+  // from wherever the user has it.
+  let rescanButton: HTMLButtonElement | null = $state(null);
+  let scanIndicator: HTMLElement | null = $state(null);
+  let body: HTMLElement | null = $state(null);
+  let followFocus = false;
+
+  function rescanFromHeader() {
+    followFocus = document.activeElement === rescanButton;
+    runDetection();
+  }
+
+  $effect(() => {
+    if (scanIndicator && followFocus) scanIndicator.focus();
+  });
+  $effect(() => {
+    if (refining || !followFocus) return;
+    followFocus = false;
+    (rescanButton ?? body)?.focus();
+  });
+
+  $effect(() => () => clearTimeout(coolTimer));
 </script>
 
 <div class="sp-panel">
@@ -341,19 +557,22 @@
         (status, data, domain, refining). It replaces the old
         disabled={refining} for the same reason, more strongly.
       -->
-      <span class="sp-scan" role="status" aria-live="polite">
+      <span class="sp-scan" role="status" aria-live="polite" tabindex="-1" bind:this={scanIndicator}>
         <span class="sp-spinner" aria-hidden="true"></span>{i18n.t("panel.scanning")}
       </span>
     {:else if status !== "cant_scan" && status !== "needs_permission"}
       <!-- No rescan on an unscannable page: nothing about it will change by
            asking again, which is why the state offers no action either. -->
-      <button class="sp-iconbtn" type="button" aria-label={i18n.t("panel.rescan")} onclick={() => runDetection()}>
+      <!-- Disabled rather than absent while the rate limit is waited out: it
+           will work again shortly, and a control that vanished would not say
+           so. The countdown itself is in the body, beside Retry. -->
+      <button class="sp-iconbtn" type="button" aria-label={i18n.t("panel.rescan")} disabled={cooling} bind:this={rescanButton} onclick={rescanFromHeader}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"></path><path d="M13.5 2v3.2h-3.2"></path></svg>
       </button>
     {/if}
   </header>
 
-  <div class="sp-body">
+  <div class="sp-body" tabindex="-1" bind:this={body}>
     {#if status === "loading"}
       <Skeleton />
     {:else if status === "result"}
@@ -363,6 +582,9 @@
       -->
       {#if held}
         <p class="sp-held" role="status">{i18n.t("panel.held", [domain])}</p>
+      {/if}
+      {#if offering}
+        <AutoScanOffer onaccept={() => closeOffer(true)} ondismiss={() => closeOffer(false)} />
       {/if}
       <ThemeCard theme={data.theme} />
       <AppList apps={data.apps} />
@@ -398,15 +620,104 @@
            so it does not carry "not loading, not result, not idle" into the
            child's prop type. PanelStatus minus those three IS TerminalStatus,
            and the branch conditions above are the proof. -->
-      <TerminalState status={status as TerminalStatus} {domain} onretry={() => runDetection()} />
+      <TerminalState status={status as TerminalStatus} {domain} retryAt={cooling ? coolUntil : 0} onretry={() => runDetection()}>
+        <!-- The one-click fix beside the toolbar instruction: with access to
+             every site, the next tab switch needs no click at all. Only while
+             it is off; with it on, there is nothing to offer here. -->
+        {#if status === "needs_permission" && shortcutKey}
+          <p class="sp-state__body">{i18n.t("terminal.needsPermission.shortcut", [shortcutKey])}</p>
+        {/if}
+        {#if status === "needs_permission" && autoScan === false}
+          <p class="sp-state__body">{i18n.t("terminal.needsPermission.hint")}</p>
+          <AutoScanSwitch checked={false} onchange={setAutoScan} />
+        {/if}
+      </TerminalState>
     {/if}
   </div>
 
+  <!--
+    Still the brief's minimal footer: one line, the footer's own faint type,
+    no new weight. What changed is that it is now the way back to the product
+    -- a review on the store and a word to us are the only feedback most users
+    will ever give, and there was nowhere in the panel to give either.
+
+    The outbound links go through heldLinkClick, like ThemeCard's and
+    AppList's. Opened as a plain new tab, each one fired the tab watcher, and
+    the rescan it triggered replaced the result with a permission error about
+    our own site or a store listing (lib/held_tabs.ts). Feedback is a
+    mailto: the mail client takes it, and no tab is opened to hold.
+  -->
+  <!-- Above the footer and drawn like it: persistent, quiet, and present in
+       every state, because turning auto-scan off has to be as easy as turning
+       it on. Not while the body is offering it -- needs_permission's switch or
+       the first result's card -- or the question would be asked twice. -->
+  {#if showAutoSwitch || shortcutKey !== null}
+    <div class="prefs">
+      {#if showAutoSwitch}
+        <AutoScanSwitch checked={autoScan === true} onchange={setAutoScan} />
+      {/if}
+      {#if shortcutKey !== null}
+        <ShortcutRow keyText={shortcutKey} canToggle={shortcut.canToggle} onchange={setShortcut} />
+      {/if}
+    </div>
+  {/if}
+
   <footer class="sp-ft">
-    <a href="https://stackpeek.app/privacy" target="_blank" rel="noreferrer">{i18n.t("panel.privacy")}</a>
+    <span class="links">
+      <a href={reviewUrl()} target="_blank" rel="noreferrer" onclick={heldLinkClick}>{i18n.t("panel.rate")}</a>
+      <span class="sp-sep" aria-hidden="true">·</span>
+      <a href={FEEDBACK_URL}>{i18n.t("panel.feedback")}</a>
+    </span>
     <ThemeToggle />
     <!-- Empty outside the extension (tests, the preview board), where there is
-         no manifest to read. A bare "v" would look like a bug. -->
-    {#if version}<span class="sp-ft__v">v{version}</span>{/if}
+         no manifest to read. A bare "v" would look like a bug. The name says
+         where the link goes, since "v0.6.1" alone does not; it keeps the
+         visible text in it, so voice control can still say what it sees. -->
+    {#if version}
+      <a class="sp-ft__v" href={SITE_URL} target="_blank" rel="noreferrer" aria-label="stackpeek.app v{version}" onclick={heldLinkClick}>v{version}</a>
+    {/if}
   </footer>
 </div>
+
+<style>
+  /* Focused only by script, as somewhere for focus to wait (see followFocus).
+     Neither is a control, and a ring around the whole body or a status line
+     would read as one. */
+  .sp-scan:focus,
+  .sp-body:focus {
+    outline: none;
+  }
+
+  /* The settings rows borrow the footer's surface and rhythm, so the block reads
+     as one block of persistent chrome rather than a new section. */
+  .prefs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-2);
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border-top: var(--sp-hairline) solid var(--sp-border);
+    background: var(--sp-bg-subtle);
+  }
+
+  /* The footer's links travel as one item, so space-between still lays the
+     row out as links / toggle / version. Wraps rather than overflows if a
+     translation runs long at the 320px minimum. */
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--sp-space-1);
+    min-width: 0;
+  }
+
+  /* panel.css gives .sp-iconbtn no disabled look, because until the rate-limit
+     wait no icon button could be disabled. Without one it keeps its hover fill
+     and pointer over a control that does nothing. The :hover twin is there to
+     outrank panel.css's own .sp-panel .sp-iconbtn:hover. */
+  .sp-iconbtn:disabled,
+  .sp-iconbtn:disabled:hover {
+    cursor: default;
+    background: transparent;
+    color: var(--sp-text-faint);
+  }
+</style>

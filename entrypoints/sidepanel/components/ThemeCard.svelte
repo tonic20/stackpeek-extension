@@ -2,6 +2,7 @@
   import Section from "./Section.svelte";
   import { heldLinkClick } from "../../../lib/held_tabs";
   import { i18n } from "#i18n";
+  import { isCatalogMatch, themeTitle } from "../../../lib/theme_title";
 
   type Theme = {
     name?: string;
@@ -12,17 +13,10 @@
   };
   let { theme }: { theme?: Theme } = $props();
 
-  // catalog and forked are the two origins that name a real catalog theme, so
-  // they are the two that can carry a version and link to a listing. custom and
-  // headless are deliberate non-answers -- there is nothing to link to.
-  const isDetected = $derived(theme?.origin === "catalog" || theme?.origin === "forked");
+  // Shared with the Markdown report (lib/theme_title.ts), which names the
+  // theme the same way.
+  const isDetected = $derived(theme ? isCatalogMatch(theme) : false);
 
-  // Unlike the design bundle's reference component, a custom theme keeps the
-  // name the merchant gave it: our detector returns it, and dropping data we
-  // hold to render a generic label is a regression. The origin chip in
-  // .sp-count says "custom", so nothing here claims a catalog match.
-  // headless is different in kind, not in policy: the service returns no name
-  // for it at all, so the label is the only thing there is to show.
   // The corner slot showed theme.origin verbatim, which left one English word
   // ("catalog") in an otherwise translated panel. Mapped rather than looked up
   // as `theme.origin.${origin}`: i18n.t() throws on an unknown key under
@@ -43,12 +37,7 @@
     return key ? i18n.t(key) : value;
   });
 
-  const title = $derived(
-    theme?.origin === "headless"
-      ? i18n.t("theme.headless")
-      : theme?.name ||
-        (theme?.origin === "custom" ? i18n.t("theme.custom") : i18n.t("theme.unknown")),
-  );
+  const title = $derived(theme ? themeTitle(theme) : "");
 </script>
 
 {#if theme}

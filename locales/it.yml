@@ -1,12 +1,13 @@
 formatLocale: it-IT
-extName: Shopify Theme Detector & Apps - Stackpeek
-extDescription: "Shopify theme detector e app detector in uno: tema, app e tracker di qualsiasi negozio. Esporta in CSV, non salva la cronologia."
+extName: "Shopify Theme Detector & Apps - Stackpeek"
+extDescription: "Rilevatore di temi Shopify e di app, con controllo dei pixel di tracciamento ed esportazione CSV."
 actionTitle: Rileva tema e app di questo negozio
 
 panel:
   scanning: Analisi in corso…
   rescan: Analizza di nuovo questa pagina
-  privacy: Privacy
+  rate: Valuta
+  feedback: Feedback
   held: Continui a vedere $1 — la scheda aperta non viene analizzata.
 theme:
   heading: Tema
@@ -106,11 +107,25 @@ bestSellers:
 themeToggle:
   toDark: Passa al tema scuro
   toLight: Passa al tema chiaro
+autoScan:
+  label: Analizza automaticamente quando cambio scheda
+  note: "Richiede l’accesso a tutti i siti."
+  offer:
+    title: "Analizzare i negozi senza clic?"
+    body: "L’analisi è automatica quando cambi scheda e l’icona segnala i negozi Shopify. Richiede l’accesso a tutti i siti."
+    accept: "Attiva"
+    dismiss: "No, grazie"
+shortcut:
+  label: "Scorciatoia da tastiera"
+  none: "Nessuna scorciatoia da tastiera"
+  change: "Cambia o disattiva"
+  set: "Impostane una"
 terminal:
   notShopify:
     code: nessuna corrispondenza
     title: Non è un negozio Shopify.
     body: Confronto con il catalogo senza risultati. Nessun dato della pagina è stato salvato.
+    hint: "Su negozi headless o pagine ancora in caricamento Shopify potrebbe non essere rilevato."
     action: Analizza di nuovo
   cantScan:
     code: pagina illeggibile
@@ -119,17 +134,35 @@ terminal:
   error:
     code: rete
     title: Impossibile raggiungere il rilevatore.
-    body: I segnali della pagina sono stati letti, ma l’API non ha risposto. Nulla è stato salvato.
+    body: "Il nostro server non ha risposto. Controlla la connessione e riprova."
+    action: Riprova
+  offline:
+    code: offline
+    title: Sei offline.
+    body: "Riconnettiti e riprova."
+    action: Riprova
+  timeout:
+    code: timeout
+    title: Il rilevatore ha impiegato troppo tempo.
+    body: "Il nostro server non ha risposto in tempo. Riprova tra un momento."
+    action: Riprova
+  serverError:
+    code: server
+    title: Il rilevatore ha avuto un problema.
+    body: "Il problema è nostro, non di questo negozio. Riprova tra un momento."
     action: Riprova
   rateLimited:
     code: "429"
     title: Attendi un momento e riprova.
     body: Troppe analisi in poco tempo. Il limite si azzera automaticamente.
     action: Riprova
+  wait: Potrai riprovare $1.
   needsPermission:
     code: autorizzazione
     title: Apri Stackpeek su questo negozio.
     body: Fai clic sull’icona Stackpeek nella barra per analizzare la pagina. Il browser concede l’accesso a un negozio alla volta, quindi il pannello non può farlo per te.
+    shortcut: "La scorciatoia $1 fa lo stesso."
+    hint: "Oppure analizza senza clic:"
   ours:
     code: siamo noi
     title: Hai puntato il rilevatore verso se stesso.
@@ -140,5 +173,6 @@ report:
   scanned: Analizzato il $1
   copyMarkdown: Copia come Markdown
   copied: Copiato
+  copyFailed: "Impossibile copiare: salvato come file."
   csv: CSV
   json: JSON

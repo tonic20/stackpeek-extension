@@ -3,13 +3,23 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseMessagesText, generateChromeMessages } from "@wxt-dev/i18n/build";
+import { UI_LOCALES } from "./ui_locales";
 
 const LOCALES_DIR = resolve(__dirname, "../locales");
 const files = readdirSync(LOCALES_DIR).filter((f) => f.endsWith(".yml")).sort();
 
+// UI catalogs get every check below; manifest-only ones (see ui_locales.ts)
+// get only the two that apply to them.
+const uiFiles = files.filter((f) => UI_LOCALES.includes(f));
+const listingOnlyFiles = files.filter((f) => !UI_LOCALES.includes(f));
+
 // Chrome's own ceilings for the two manifest strings, from
 // https://developer.chrome.com/docs/webstore/cws-dashboard-listing.
 const LIMITS = { extName: 75, extDescription: 132 } as const;
+// Chrome accepts a 75-character name, but store search results cut it at 45,
+// and everything past that is a keyword nobody sees. The build script refuses
+// a longer appName; this catches a catalog edited by hand around it.
+const STORE_NAME_TARGET = 45;
 
 const messagesOf = (file: string) =>
   generateChromeMessages(
@@ -38,12 +48,18 @@ describe("locales", () => {
     expect(files.length).toBeGreaterThan(0);
   });
 
+  // A UI catalog that went missing would otherwise just stop generating its
+  // tests below, which reads as green.
+  it("ships every UI locale", () => {
+    expect(UI_LOCALES.filter((f) => !files.includes(f))).toEqual([]);
+  });
+
   // This guard exists for the locale that does not exist yet. extDescription is
   // 129 of the 132 characters Chrome allows and German runs 20-35% longer, so
   // the first German translation overflows on the first attempt. Learning that
   // from `npm test` costs a minute; learning it from a rejected upload costs a
-  // release cycle.
-  for (const file of files) {
+  // release cycle. The length checks themselves run for every catalog, below.
+  for (const file of uiFiles) {
     describe(file, () => {
       const messages = messagesOf(file);
 
@@ -91,6 +107,27 @@ describe("locales", () => {
           "trackers_unidentified_other",
         ]));
       });
+    });
+  }
+
+  // No formatLocale here, and no actionTitle: a manifest-only catalog that
+  // carried either would format numbers in this language around English text
+  // (the mismatch en.yml's formatLocale comment rules out) or retitle the
+  // toolbar button in a language the panel behind it does not speak. Exactly
+  // the two keys, so a stray UI string pasted in is caught too.
+  for (const file of listingOnlyFiles) {
+    it(`${file} carries only the manifest name and summary`, () => {
+      const messages = messagesOf(file);
+
+      expect(Object.keys(messages).sort()).toEqual(["extDescription", "extName"]);
+      expect(messages.extName?.message.trim()).toBeTruthy();
+      expect(messages.extDescription?.message.trim()).toBeTruthy();
+    });
+  }
+
+  for (const file of files) {
+    describe(`${file} manifest strings`, () => {
+      const messages = messagesOf(file);
 
       for (const [key, limit] of Object.entries(LIMITS)) {
         it(`keeps ${key} within Chrome's ${limit} characters`, () => {
@@ -105,6 +142,10 @@ describe("locales", () => {
           expect([...messages[key]!.message].length).toBeLessThanOrEqual(limit);
         });
       }
+
+      it(`keeps extName within the ${STORE_NAME_TARGET} characters search results show`, () => {
+        expect([...messages.extName!.message].length).toBeLessThanOrEqual(STORE_NAME_TARGET);
+      });
     });
   }
 
@@ -122,7 +163,9 @@ describe("locales", () => {
   // Dormant until a second locale lands, and deliberately generates NO test
   // case while `en` is the only file -- a parity assertion with nothing to
   // compare against would pass for the wrong reason, which is the failure mode
-  // this file already had once (see the length guard's comment above).
+  // this file already had once (see the length guard's comment above). UI
+  // catalogs only: a manifest-only one is missing every UI key by design, and
+  // its own test above already pins it to exactly two.
   //
   // What it will catch: a key MISSING from a translation is not an error
   // anywhere. Chrome falls back to the default locale per message, by design,
@@ -140,7 +183,7 @@ describe("locales", () => {
   const DEFAULT_LOCALE = "en.yml";
   const keysOf = (file: string) => new Set(Object.keys(messagesOf(file)));
 
-  for (const file of files.filter((f) => f !== DEFAULT_LOCALE)) {
+  for (const file of uiFiles.filter((f) => f !== DEFAULT_LOCALE)) {
     it(`${file} defines exactly the keys ${DEFAULT_LOCALE} does`, () => {
       const expected = keysOf(DEFAULT_LOCALE);
       const actual = keysOf(file);
