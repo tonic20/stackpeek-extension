@@ -356,3 +356,7 @@ in place of `chrome://extensions`; run them yourself after building:
 These are the only steps in the extension's acceptance criteria that require
 a live browser and live stores; everything else (build, manifest, unit
 tests) is verified automatically as part of the build/test commands above.
+
+## Author
+
+Built by [Anton Kopylov](https://www.kopylov.net). The story behind it: [Stackpeek: See What a Shopify Store Is Built With](https://www.kopylov.net/blog/stackpeek-see-what-a-shopify-store-is-built-with.html).
